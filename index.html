@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Efaro - Dashboard de Horas Extras</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Tela de Login -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-container">
+            <div class="login-header">
+                <div class="logo-container">
+                    <i class="fas fa-seedling logo-icon"></i>
+                    <h1>EFARO</h1>
+                </div>
+                <p>Dashboard de Horas Extras</p>
+            </div>
+            <form id="loginForm" class="login-form">
+                <div class="input-group">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="email" placeholder="Digite seu e-mail" required>
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="password" placeholder="Digite sua senha" required>
+                </div>
+                <button type="submit" class="login-btn">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Entrar
+                </button>
+                <div id="loginError" class="error-message"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dashboard Principal -->
+    <div id="dashboard" class="dashboard hidden">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <div class="logo-container">
+                    <i class="fas fa-seedling logo-icon"></i>
+                    <span class="logo-text">EFARO</span>
+                </div>
+                <h2>Dashboard de Horas Extras</h2>
+            </div>
+            <div class="header-right">
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="userName">Usuário</span>
+                </div>
+                <button id="logoutBtn" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" data-section="overview">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Visão Geral</span>
+                </a>
+                <a href="#" class="nav-item" data-section="evolution">
+                    <i class="fas fa-trending-up"></i>
+                    <span>Evolução</span>
+                </a>
+                <a href="#" class="nav-item" data-section="comparison">
+                    <i class="fas fa-balance-scale"></i>
+                    <span>Comparação</span>
+                </a>
+                <a href="#" class="nav-item" data-section="details">
+                    <i class="fas fa-table"></i>
+                    <span>Detalhes</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Conteúdo Principal -->
+        <main class="main-content">
+            <!-- Seção Visão Geral -->
+            <section id="overview" class="content-section active">
+                <div class="section-header">
+                    <h3>Visão Geral - Horas Extras</h3>
+                    <p>Análise consolidada dos últimos períodos</p>
+                </div>
+
+                <!-- Cards de Métricas -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="metric-content">
+                            <h4>Total HE (Último Período)</h4>
+                            <span class="metric-value" id="totalHE">0h</span>
+                            <span class="metric-change positive">
+                                <i class="fas fa-arrow-down"></i> -45% vs anterior
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-icon">
+                            <i class="fas fa-calendar-week"></i>
+                        </div>
+                        <div class="metric-content">
+                            <h4>Média Semanal</h4>
+                            <span class="metric-value" id="weeklyAvg">0h</span>
+                            <span class="metric-change positive">
+                                <i class="fas fa-arrow-down"></i> Redução significativa
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-icon">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                        <div class="metric-content">
+                            <h4>Economia Estimada</h4>
+                            <span class="metric-value">R$ 12.500</span>
+                            <span class="metric-change positive">
+                                <i class="fas fa-arrow-up"></i> Após contratações
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="metric-content">
+                            <h4>Eficiência da Equipe</h4>
+                            <span class="metric-value">+85%</span>
+                            <span class="metric-change positive">
+                                <i class="fas fa-arrow-up"></i> Melhoria contínua
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráfico Principal -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h4>Evolução das Horas Extras por Período</h4>
+                        <div class="chart-controls">
+                            <button class="chart-btn active" data-chart="line">Linha</button>
+                            <button class="chart-btn" data-chart="bar">Barras</button>
+                        </div>
+                    </div>
+                    <canvas id="mainChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Seção Evolução -->
+            <section id="evolution" class="content-section">
+                <div class="section-header">
+                    <h3>Evolução Temporal</h3>
+                    <p>Análise detalhada da evolução das horas extras</p>
+                </div>
+
+                <div class="charts-row">
+                    <div class="chart-container half">
+                        <h4>HE 50% vs HE 100%</h4>
+                        <canvas id="heTypesChart"></canvas>
+                    </div>
+                    <div class="chart-container half">
+                        <h4>Distribuição por Dia da Semana</h4>
+                        <canvas id="weekdayChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h4>Tendência e Projeção</h4>
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Seção Comparação -->
+            <section id="comparison" class="content-section">
+                <div class="section-header">
+                    <h3>Comparação de Períodos</h3>
+                    <p>Análise comparativa antes e depois das contratações</p>
+                </div>
+
+                <div class="comparison-grid">
+                    <div class="comparison-card">
+                        <h4>Antes das Contratações</h4>
+                        <div class="comparison-metrics">
+                            <div class="comparison-item">
+                                <span class="label">Períodos 1-2:</span>
+                                <span class="value">156h extras/mês</span>
+                            </div>
+                            <div class="comparison-item">
+                                <span class="label">Custo médio:</span>
+                                <span class="value">R$ 8.500/mês</span>
+                            </div>
+                            <div class="comparison-item">
+                                <span class="label">Picos de HE:</span>
+                                <span class="value">Frequentes</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="comparison-card">
+                        <h4>Depois das Contratações</h4>
+                        <div class="comparison-metrics">
+                            <div class="comparison-item">
+                                <span class="label">Períodos 3-4:</span>
+                                <span class="value">89h extras/mês</span>
+                            </div>
+                            <div class="comparison-item">
+                                <span class="label">Custo médio:</span>
+                                <span class="value">R$ 4.800/mês</span>
+                            </div>
+                            <div class="comparison-item">
+                                <span class="label">Picos de HE:</span>
+                                <span class="value">Controlados</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h4>Comparação Visual dos Períodos</h4>
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Seção Detalhes -->
+            <section id="details" class="content-section">
+                <div class="section-header">
+                    <h3>Dados Detalhados</h3>
+                    <p>Tabela completa com todos os registros</p>
+                </div>
+
+                <div class="table-container">
+                    <div class="table-controls">
+                        <select id="periodFilter">
+                            <option value="all">Todos os Períodos</option>
+                            <option value="1">23/04 - 22/05</option>
+                            <option value="2">23/05 - 22/06</option>
+                            <option value="3">23/06 - 22/07</option>
+                            <option value="4">23/07 - 22/08</option>
+                        </select>
+                        <button id="exportBtn" class="export-btn">
+                            <i class="fas fa-download"></i>
+                            Exportar
+                        </button>
+                    </div>
+                    <table id="detailsTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Dia</th>
+                                <th>1º Entrada</th>
+                                <th>1º Saída</th>
+                                <th>2º Entrada</th>
+                                <th>2º Saída</th>
+                                <th>Total</th>
+                                <th>HE 50%</th>
+                                <th>HE 100%</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- Dados serão inseridos via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
