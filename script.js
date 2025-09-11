@@ -3,10 +3,10 @@ const API_KEY = 'AIzaSyD-EXEMPLO-CHAVE-API'; // Substitua pela sua API Key
 
 // Usuários e senhas
 const usuarios = [
-    { nome: 'José Paulo', username: 'admin', password: 'admin123' },
-    { nome: 'Deise Borsato', username: 'deise', password: 'deise123' },
-    { nome: 'Everton Henrique', username: 'everton', password: 'everton123' },
-    { nome: 'Matheus Rodas', username: 'matheus', password: 'matheus123' }
+    { nome: 'José Paulo', email: 'josepaulojunior@live.com', senha: 'efaro2024' },
+    { nome: 'Deise Borsato', email: 'deise.silva@efaro.com.br', senha: 'efaro2024' },
+    { nome: 'Everton Henrique', email: 'everton@efaro.com.br', senha: 'efaro2024' },
+    { nome: 'Matheus Rodas', email: 'matheus@efaro.com.br', senha: 'efaro2024' }
 ];
 
 let usuarioLogado = null;
@@ -15,10 +15,10 @@ let usuarioLogado = null;
 document.getElementById('loginForm').addEventListener('submit', function (event) {
     event.preventDefault();
 
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
+    const email = document.getElementById('email').value;
+    const senha = document.getElementById('password').value;
 
-    const usuario = usuarios.find(u => u.username === username && u.password === password);
+    const usuario = usuarios.find(u => u.email === email && u.senha === senha);
 
     if (usuario) {
         usuarioLogado = usuario;
