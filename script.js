@@ -1,5 +1,5 @@
-const SHEET_ID = '1F5F8T5XyLk9V8vLkz5F8T5XyLk9V8vLkz5F8T5XyLk9'; // Substitua pelo ID correto
-const API_KEY = 'AIzaSyD-EXEMPLO-CHAVE-API'; // Substitua pela sua API Key
+const SHEET_ID = '1G70SDPnu_jGtbAuLJPmUrOEsEydlivo4zIrWUeIG_1Y'; // ID da planilha fornecida
+const API_KEY = 'AIzaSyBlR6MOUqtMcryJ3uVEzuykjijQyFogN4g'; // API Key fornecida
 
 // Usuários e senhas
 const usuarios = [
@@ -44,7 +44,99 @@ function logout() {
     document.getElementById('dashboard').style.display = 'none';
 }
 
-// Função para carregar os dados
+// Função para buscar os nomes das abas da planilha
+async function fetchSheetNames() {
+    try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?key=${API_KEY}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.sheets) {
+            return data.sheets.map(sheet => sheet.properties.title);
+        } else {
+            console.error('Erro: Não foi possível obter os nomes das abas.', data);
+            return [];
+        }
+    } catch (error) {
+        console.error('Erro ao buscar os nomes das abas:', error);
+        return [];
+    }
+}
+
+// Função para buscar os dados de uma aba específica
+async function fetchSheetData(sheetName) {
+    try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(sheetName)}!A1:Z1000?key=${API_KEY}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.values) {
+            const rows = data.values.slice(1); // Ignora os cabeçalhos
+            return rows.map(row => {
+                const expediente = row[6] || '08:48';
+                const total = row[7] || '0:00:00';
+                const horasExtras = calcularHorasExtras(expediente, total);
+
+                return {
+                    data: row[0] || '-',
+                    dia: row[1] || '-',
+                    entrada1: row[2] || '-',
+                    saida1: row[3] || '-',
+                    entrada2: row[4] || '-',
+                    saida2: row[5] || '-',
+                    expediente,
+                    total,
+                    he50: horasExtras.he50,
+                    he100: horasExtras.he100,
+                    nome: row[10] || 'Desconhecido' // Nome do usuário
+                };
+            });
+        } else {
+            console.error('Erro: Não foi possível obter os dados da planilha.', data);
+        }
+    } catch (error) {
+        console.error('Erro ao buscar os dados:', error);
+    }
+}
+
+// Função para calcular horas extras
+function calcularHorasExtras(expediente, total) {
+    const expedienteMinutos = timeToMinutes(expediente);
+    const totalMinutos = timeToMinutes(total);
+
+    const saldo = totalMinutos - expedienteMinutos;
+
+    let he50 = 0;
+    let he100 = 0;
+
+    if (saldo > 0) {
+        if (saldo <= 60) {
+            he50 = saldo;
+        } else {
+            he50 = 60;
+            he100 = saldo - 60;
+        }
+    }
+
+    return {
+        he50: he50 / 60,
+        he100: he100 / 60
+    };
+}
+
+// Funções auxiliares para conversão de tempo
+function timeToMinutes(time) {
+    const [hours, minutes] = time.split(':').map(Number);
+    return hours * 60 + minutes;
+}
+
+function minutesToTime(minutes) {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+}
+
+// Função para carregar os dados e renderizar
 async function carregarDados() {
     const periodos = await fetchSheetNames();
 
@@ -58,4 +150,4 @@ async function carregarDados() {
     renderizarGrafico(dadosUsuario);
 }
 
-// Funções auxiliares (fetchSheetNames, fetchSheetData, renderizarTabela, renderizarGrafico) continuam as mesmas...
+// Funções de renderização (renderizarTabela e renderizarGrafico) continuam as mesmas...
