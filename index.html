@@ -3,25 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de Horas Extras</title>
+    <title>Efaro Dashboard</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div id="loginScreen">
-        <h1>Login</h1>
+        <h1>Efaro Dashboard</h1>
         <form id="loginForm">
-            <label for="username">Usuário:</label>
-            <input type="text" id="username" required>
+            <label for="email">E-mail:</label>
+            <input type="email" id="email" required>
             <label for="password">Senha:</label>
             <input type="password" id="password" required>
             <button type="submit">Entrar</button>
         </form>
-        <p id="loginError" style="color: red; display: none;">Usuário ou senha inválidos!</p>
+        <p id="loginError" style="color: red; display: none;">E-mail ou senha inválidos!</p>
     </div>
 
     <div id="dashboard" style="display: none;">
-        <button class="menu-button" onclick="toggleMenu()">☰ Menu</button>
         <div class="sidebar">
             <h2>Bem-vindo, <span id="userName"></span></h2>
             <button onclick="logout()">Sair</button>
