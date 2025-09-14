@@ -3,52 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Efaro Dashboard</title>
-    <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Dashboard de Horários</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+    </style>
 </head>
 <body>
-    <!-- Tela de Login -->
-    <div id="loginScreen">
-        <h1>Efaro Dashboard</h1>
-        <form id="loginForm">
-            <label for="email">E-mail:</label>
-            <input type="email" id="email" required>
-            <label for="password">Senha:</label>
-            <input type="password" id="password" required>
-            <button type="submit">Entrar</button>
-        </form>
-        <p id="loginError" style="color: red; display: none;">E-mail ou senha inválidos!</p>
-    </div>
+    <h1>Dashboard de Horários</h1>
+    <p>Os dados da planilha serão carregados automaticamente abaixo:</p>
 
-    <!-- Dashboard -->
-    <div id="dashboard" style="display: none;">
-        <div class="sidebar">
-            <h2>Bem-vindo, <span id="userName"></span></h2>
-            <button onclick="logout()">Sair</button>
-        </div>
-        <div class="content">
-            <h1>Dashboard de Horas Extras</h1>
-            <canvas id="heChart"></canvas>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Data</th>
-                        <th>Dia</th>
-                        <th>Entrada 1</th>
-                        <th>Saída 1</th>
-                        <th>Entrada 2</th>
-                        <th>Saída 2</th>
-                        <th>Expediente</th>
-                        <th>Total</th>
-                        <th>HE 50%</th>
-                        <th>HE 100%</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody"></tbody>
-            </table>
-        </div>
-    </div>
+    <!-- Tabela para exibir os dados da planilha -->
+    <table id="tabela-dados">
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Dia</th>
+                <th>Entrada1</th>
+                <th>Saída1</th>
+                <th>Entrada2</th>
+                <th>Saída2</th>
+                <th>Expediente</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Os dados da planilha serão inseridos aqui -->
+        </tbody>
+    </table>
+
+    <!-- Script para carregar e processar os dados -->
     <script src="script.js"></script>
 </body>
 </html>
