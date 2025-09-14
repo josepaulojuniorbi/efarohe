@@ -6,6 +6,8 @@
     <title>Efaro Dashboard</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Biblioteca para ler arquivos Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
     <!-- Tela de Login -->
@@ -19,6 +21,9 @@
             <button type="submit">Entrar</button>
         </form>
         <p id="loginError" style="color: red; display: none;">E-mail ou senha inválidos!</p>
+        <div id="loadingMessage" style="display: none; color: #2e7d32; margin-top: 10px;">
+            Carregando dados...
+        </div>
     </div>
 
     <!-- Dashboard -->
@@ -26,9 +31,20 @@
         <div class="sidebar">
             <h2>Bem-vindo, <span id="userName"></span></h2>
             <button onclick="logout()">Sair</button>
+            <button onclick="atualizarDados()">Atualizar Dados</button>
         </div>
         <div class="content">
             <h1>Dashboard de Horas Extras</h1>
+            <div id="resumo" class="resumo-container">
+                <div class="resumo-card">
+                    <h3>Total HE 50%</h3>
+                    <span id="totalHE50">0h</span>
+                </div>
+                <div class="resumo-card">
+                    <h3>Total HE 100%</h3>
+                    <span id="totalHE100">0h</span>
+                </div>
+            </div>
             <canvas id="heChart"></canvas>
             <table>
                 <thead>
