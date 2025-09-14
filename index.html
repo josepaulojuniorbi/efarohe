@@ -6,7 +6,6 @@
     <title>Efaro Dashboard</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Biblioteca para ler arquivos Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
@@ -30,39 +29,49 @@
     <div id="dashboard" style="display: none;">
         <div class="sidebar">
             <h2>Bem-vindo, <span id="userName"></span></h2>
-            <button onclick="logout()">Sair</button>
-            <button onclick="atualizarDados()">Atualizar Dados</button>
-        </div>
-        <div class="content">
-            <h1>Dashboard de Horas Extras</h1>
-            <div id="resumo" class="resumo-container">
-                <div class="resumo-card">
-                    <h3>Total HE 50%</h3>
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-label">Total de Registros:</span>
+                    <span id="totalRegistros">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Total HE 50%:</span>
                     <span id="totalHE50">0h</span>
                 </div>
-                <div class="resumo-card">
-                    <h3>Total HE 100%</h3>
+                <div class="stat-item">
+                    <span class="stat-label">Total HE 100%:</span>
                     <span id="totalHE100">0h</span>
                 </div>
             </div>
-            <canvas id="heChart"></canvas>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Data</th>
-                        <th>Dia</th>
-                        <th>Entrada 1</th>
-                        <th>Saída 1</th>
-                        <th>Entrada 2</th>
-                        <th>Saída 2</th>
-                        <th>Expediente</th>
-                        <th>Total</th>
-                        <th>HE 50%</th>
-                        <th>HE 100%</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody"></tbody>
-            </table>
+            <button onclick="atualizarDados()">🔄 Atualizar Dados</button>
+            <button onclick="logout()">🚪 Sair</button>
+        </div>
+        <div class="content">
+            <h1>Dashboard de Horas Extras - <span id="userNameHeader"></span></h1>
+            
+            <div class="chart-container">
+                <canvas id="heChart"></canvas>
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Dia</th>
+                            <th>Entrada 1</th>
+                            <th>Saída 1</th>
+                            <th>Entrada 2</th>
+                            <th>Saída 2</th>
+                            <th>Expediente</th>
+                            <th>Total</th>
+                            <th>HE 50%</th>
+                            <th>HE 100%</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
         </div>
     </div>
     <script src="script.js"></script>
