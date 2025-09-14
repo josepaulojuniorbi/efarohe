@@ -1,10 +1,3 @@
-console.log('🚀 === DIAGNÓSTICO COMPLETO INICIADO ===');
-
-// Verificações iniciais
-console.log('📅 Timestamp:', new Date().toISOString());
-console.log('🌐 User Agent:', navigator.userAgent);
-console.log('🔗 URL atual:', window.location.href);
-
 // URL do arquivo Excel no GitHub
 const EXCEL_URL = 'https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/refs/heads/main/base_dados.xlsx';
 
@@ -17,379 +10,361 @@ const usuarios = [
 ];
 
 let usuarioLogado = null;
-
-// Verificar se tudo carregou
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('📄 === VERIFICAÇÕES INICIAIS ===');
-    
-    // Verificar elementos HTML
-    const elementos = {
-        loginForm: document.getElementById('loginForm'),
-        email: document.getElementById('email'),
-        password: document.getElementById('password'),
-        loginError: document.getElementById('loginError'),
-        loginScreen: document.getElementById('loginScreen'),
-        dashboard: document.getElementById('dashboard'),
-        userName: document.getElementById('userName')
-    };
-    
-    console.log('🏗️ Elementos HTML encontrados:');
-    Object.keys(elementos).forEach(key => {
-        console.log(`  ${key}:`, elementos[key] ? '✅ OK' : '❌ NÃO ENCONTRADO');
-    });
-    
-    // Verificar bibliotecas
-    console.log('📚 Bibliotecas carregadas:');
-    console.log('  Chart.js:', typeof Chart !== 'undefined' ? '✅ OK' : '❌ NÃO CARREGADA');
-    console.log('  XLSX:', typeof XLSX !== 'undefined' ? '✅ OK' : '❌ NÃO CARREGADA');
-    
-    if (typeof XLSX !== 'undefined') {
-        console.log('  Versão XLSX:', XLSX.version || 'Desconhecida');
-    }
-    
-    // Testar conectividade
-    console.log('🌐 Testando conectividade...');
-    testarConectividade();
-});
-
-// Função para testar conectividade
-async function testarConectividade() {
-    console.log('🔗 === TESTE DE CONECTIVIDADE ===');
-    
-    const urlsParaTestar = [
-        'https://httpbin.org/get', // Teste básico de conectividade
-        'https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/refs/heads/main/base_dados.xlsx',
-        'https://github.com/josepaulojuniorbi/efarohe/raw/main/base_dados.xlsx'
-    ];
-    
-    for (let i = 0; i < urlsParaTestar.length; i++) {
-        const url = urlsParaTestar[i];
-        console.log(`🔗 Testando URL ${i + 1}: ${url}`);
-        
-        try {
-            const startTime = performance.now();
-            const response = await fetch(url, {
-                method: 'GET',
-                cache: 'no-cache'
-            });
-            const endTime = performance.now();
-            
-            console.log(`  ⏱️ Tempo de resposta: ${(endTime - startTime).toFixed(2)}ms`);
-            console.log(`  📊 Status: ${response.status} ${response.statusText}`);
-            console.log(`  📊 Headers:`, Object.fromEntries(response.headers.entries()));
-            
-            if (response.ok) {
-                if (url.includes('.xlsx')) {
-                    const arrayBuffer = await response.arrayBuffer();
-                    console.log(`  📦 Tamanho do arquivo: ${arrayBuffer.byteLength} bytes`);
-                    
-                    if (arrayBuffer.byteLength > 0) {
-                        console.log(`  ✅ Arquivo Excel baixado com sucesso!`);
-                        // Guardar para usar depois
-                        window.testeArrayBuffer = arrayBuffer;
-                    } else {
-                        console.log(`  ❌ Arquivo está vazio!`);
-                    }
-                } else {
-                    console.log(`  ✅ Conectividade OK!`);
-                }
-            } else {
-                console.log(`  ❌ Erro HTTP: ${response.status}`);
-            }
-        } catch (error) {
-            console.log(`  💥 Erro: ${error.message}`);
-        }
-        
-        console.log(''); // Linha em branco para separar
-    }
-}
+let dadosExcel = null;
+let graficoAtual = null;
 
 // Função de login
-document.getElementById('loginForm')?.addEventListener('submit', function (event) {
+document.getElementById('loginForm').addEventListener('submit', function (event) {
     event.preventDefault();
-    console.log('🔐 === PROCESSO DE LOGIN ===');
 
     const email = document.getElementById('email').value;
     const senha = document.getElementById('password').value;
 
-    console.log('📧 Email digitado:', email);
-    console.log('�� Senha digitada:', senha ? '***' : '(vazia)');
-
     const usuario = usuarios.find(u => u.email === email && u.senha === senha);
 
     if (usuario) {
-        console.log('✅ Login bem-sucedido!');
-        console.log('👤 Usuário:', usuario);
         usuarioLogado = usuario;
+        mostrarCarregamento(true);
         iniciarDashboard();
     } else {
-        console.log('❌ Login falhou - credenciais inválidas');
         document.getElementById('loginError').style.display = 'block';
     }
 });
 
-// Função para inicializar o dashboard
-async function iniciarDashboard() {
-    console.log('🚀 === INICIALIZANDO DASHBOARD ===');
-    
-    try {
-        // Mostrar dashboard
-        document.getElementById('loginScreen').style.display = 'none';
-        document.getElementById('dashboard').style.display = 'block';
-        document.getElementById('userName').textContent = usuarioLogado.nome;
-        
-        console.log('🎨 Interface do dashboard exibida');
-        
-        // Testar carregamento do Excel
-        await testarExcelCompleto();
-        
-    } catch (error) {
-        console.error('💥 Erro ao inicializar dashboard:', error);
+// Função para mostrar/ocultar loading
+function mostrarCarregamento(mostrar) {
+    const loadingElement = document.getElementById('loadingMessage');
+    if (loadingElement) {
+        loadingElement.style.display = mostrar ? 'block' : 'none';
     }
 }
 
-// Função de teste completo do Excel
-async function testarExcelCompleto() {
-    console.log('📊 === TESTE COMPLETO DO EXCEL ===');
-    
+// Função para inicializar o dashboard
+async function iniciarDashboard() {
     try {
-        // Passo 1: Verificar biblioteca XLSX
-        console.log('📚 Passo 1: Verificando biblioteca XLSX...');
-        if (typeof XLSX === 'undefined') {
-            throw new Error('❌ Biblioteca XLSX não carregada!');
-        }
-        console.log('✅ Biblioteca XLSX OK');
+        await carregarDadosExcel();
         
-        // Passo 2: Baixar arquivo
-        console.log('📥 Passo 2: Baixando arquivo Excel...');
-        console.log('🔗 URL:', EXCEL_URL);
-        
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+        document.getElementById('userName').textContent = usuarioLogado.nome;
+        document.getElementById('userNameHeader').textContent = usuarioLogado.nome;
+
+        carregarDados();
+        mostrarCarregamento(false);
+    } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        alert('Erro ao carregar os dados. Tente novamente.');
+        mostrarCarregamento(false);
+    }
+}
+
+// Função para sair
+function logout() {
+    usuarioLogado = null;
+    dadosExcel = null;
+    if (graficoAtual) {
+        graficoAtual.destroy();
+        graficoAtual = null;
+    }
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('loginError').style.display = 'none';
+}
+
+// Função para atualizar dados
+async function atualizarDados() {
+    mostrarCarregamento(true);
+    try {
+        await carregarDadosExcel();
+        carregarDados();
+        alert('Dados atualizados com sucesso!');
+    } catch (error) {
+        console.error('Erro ao atualizar dados:', error);
+        alert('Erro ao atualizar os dados. Tente novamente.');
+    }
+    mostrarCarregamento(false);
+}
+
+// Função para carregar dados do Excel
+async function carregarDadosExcel() {
+    try {
         const response = await fetch(EXCEL_URL, {
             method: 'GET',
-            cache: 'no-cache',
-            headers: {
-                'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream,*/*'
-            }
+            cache: 'no-cache'
         });
         
-        console.log('📡 Response status:', response.status);
-        console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
-        
         if (!response.ok) {
-            throw new Error(`❌ Erro HTTP: ${response.status} - ${response.statusText}`);
+            throw new Error(`Erro HTTP: ${response.status}`);
         }
         
         const arrayBuffer = await response.arrayBuffer();
-        console.log('📦 Arquivo baixado - Tamanho:', arrayBuffer.byteLength, 'bytes');
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
         
-        if (arrayBuffer.byteLength === 0) {
-            throw new Error('❌ Arquivo está vazio!');
-        }
+        dadosExcel = {};
         
-        // Passo 3: Verificar se é um arquivo Excel válido
-        console.log('🔍 Passo 3: Verificando se é um arquivo Excel válido...');
-        
-        // Verificar assinatura do arquivo Excel
-        const uint8Array = new Uint8Array(arrayBuffer);
-        const signature = Array.from(uint8Array.slice(0, 4)).map(b => b.toString(16).padStart(2, '0')).join('');
-        console.log('📝 Assinatura do arquivo (primeiros 4 bytes):', signature);
-        
-        // Assinatura típica de arquivos ZIP/Excel: 50 4B 03 04
-        if (signature === '504b0304') {
-            console.log('✅ Assinatura de arquivo Excel/ZIP detectada');
-        } else {
-            console.log('⚠️ Assinatura não reconhecida - pode não ser um arquivo Excel válido');
-        }
-        
-        // Passo 4: Tentar ler com XLSX
-        console.log('📖 Passo 4: Lendo arquivo com biblioteca XLSX...');
-        
-        const workbook = XLSX.read(arrayBuffer, { 
-            type: 'array',
-            cellDates: true,
-            cellNF: false,
-            cellText: false
-        });
-        
-        console.log('✅ Arquivo Excel lido com sucesso!');
-        console.log('📋 Abas encontradas:', workbook.SheetNames);
-        console.log('📊 Número de abas:', workbook.SheetNames.length);
-        
-        // Passo 5: Analisar cada aba
-        console.log('🔍 Passo 5: Analisando conteúdo das abas...');
-        
-        workbook.SheetNames.forEach((sheetName, index) => {
-            console.log(`\n📄 === ABA ${index + 1}: "${sheetName}" ===`);
-            
+        // Processar todas as abas
+        workbook.SheetNames.forEach(sheetName => {
             const worksheet = workbook.Sheets[sheetName];
-            
-            // Obter range da planilha
-            const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:A1');
-            console.log(`📐 Range da aba: ${worksheet['!ref']}`);
-            console.log(`📊 Linhas: ${range.e.r + 1}, Colunas: ${range.e.c + 1}`);
-            
-            // Converter para JSON
             const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
                 header: 1,
                 defval: '',
                 raw: false
             });
             
-            console.log(`📊 Linhas de dados: ${jsonData.length}`);
+            if (jsonData.length > 1) {
+                dadosExcel[sheetName] = jsonData;
+            }
+        });
+        
+        console.log('Dados carregados com sucesso:', dadosExcel);
+        
+    } catch (error) {
+        console.error('Erro ao carregar arquivo Excel:', error);
+        throw error;
+    }
+}
+
+// Função para processar dados (agora mostra TODOS os dados)
+function processarDadosUsuario() {
+    const dadosUsuario = [];
+    
+    if (!dadosExcel) return dadosUsuario;
+    
+    // Processar cada aba
+    Object.keys(dadosExcel).forEach(sheetName => {
+        const dados = dadosExcel[sheetName];
+        const cabecalho = dados[0];
+        
+        console.log(`Processando aba: ${sheetName}`);
+        console.log('Cabeçalho:', cabecalho);
+        
+        // Mapear colunas baseado na posição (assumindo estrutura padrão)
+        // Ajuste estes índices conforme sua planilha
+        const indices = {
+            data: 0,      // Coluna A
+            dia: 1,       // Coluna B  
+            entrada1: 2,  // Coluna C
+            saida1: 3,    // Coluna D
+            entrada2: 4,  // Coluna E
+            saida2: 5,    // Coluna F
+            expediente: 6, // Coluna G
+            total: 7      // Coluna H
+        };
+        
+        // Processar todas as linhas de dados (sem filtro por nome)
+        for (let i = 1; i < dados.length; i++) {
+            const linha = dados[i];
             
-            if (jsonData.length > 0) {
-                console.log(`📋 Cabeçalho (linha 1):`, jsonData[0]);
-                
-                if (jsonData.length > 1) {
-                    console.log(`�� Linha 2:`, jsonData[1]);
+            if (!linha || linha.length === 0) continue;
+            
+            // Pegar dados das colunas
+            const expediente = linha[indices.expediente] || '08:48';
+            const total = linha[indices.total] || '0:00:00';
+            const horasExtras = calcularHorasExtras(expediente, total);
+
+            // Só adicionar se tiver pelo menos uma data
+            if (linha[indices.data]) {
+                dadosUsuario.push({
+                    data: linha[indices.data] || '-',
+                    dia: linha[indices.dia] || '-',
+                    entrada1: linha[indices.entrada1] || '-',
+                    saida1: linha[indices.saida1] || '-',
+                    entrada2: linha[indices.entrada2] || '-',
+                    saida2: linha[indices.saida2] || '-',
+                    expediente,
+                    total,
+                    he50: horasExtras.he50,
+                    he100: horasExtras.he100,
+                    periodo: sheetName
+                });
+            }
+        }
+    });
+    
+    console.log(`Total de registros processados: ${dadosUsuario.length}`);
+    return dadosUsuario;
+}
+
+// Função para calcular horas extras
+function calcularHorasExtras(expediente, total) {
+    const expedienteMinutos = timeToMinutes(expediente);
+    const totalMinutos = timeToMinutes(total);
+
+    const saldo = totalMinutos - expedienteMinutos;
+
+    let he50 = 0;
+    let he100 = 0;
+
+    if (saldo > 0) {
+        if (saldo <= 120) { // Primeiras 2 horas = 50%
+            he50 = saldo;
+        } else {
+            he50 = 120;
+            he100 = saldo - 120;
+        }
+    }
+
+    return {
+        he50: he50 / 60,
+        he100: he100 / 60
+    };
+}
+
+// Funções auxiliares para conversão de tempo
+function timeToMinutes(time) {
+    if (!time || time === '-') return 0;
+    
+    const timeStr = time.toString().trim();
+    const parts = timeStr.split(':');
+    if (parts.length >= 2) {
+        const hours = parseInt(parts[0]) || 0;
+        const minutes = parseInt(parts[1]) || 0;
+        return hours * 60 + minutes;
+    }
+    
+    return 0;
+}
+
+function minutesToTime(minutes) {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+}
+
+// Função para carregar os dados e renderizar
+function carregarDados() {
+    const dadosUsuario = processarDadosUsuario();
+    
+    renderizarTabela(dadosUsuario);
+    renderizarGrafico(dadosUsuario);
+    atualizarEstatisticas(dadosUsuario);
+}
+
+// Função para atualizar estatísticas
+function atualizarEstatisticas(dados) {
+    const totalRegistros = dados.length;
+    const totalHE50 = dados.reduce((sum, row) => sum + row.he50, 0);
+    const totalHE100 = dados.reduce((sum, row) => sum + row.he100, 0);
+    
+    document.getElementById('totalRegistros').textContent = totalRegistros;
+    document.getElementById('totalHE50').textContent = `${totalHE50.toFixed(2)}h`;
+    document.getElementById('totalHE100').textContent = `${totalHE100.toFixed(2)}h`;
+}
+
+// Função para renderizar a tabela
+function renderizarTabela(dados) {
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+
+    if (dados.length === 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td colspan="10" style="text-align: center; padding: 20px; color: #666;">Nenhum dado encontrado</td>';
+        tbody.appendChild(tr);
+        return;
+    }
+
+    dados.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${row.data}</td>
+            <td>${row.dia}</td>
+            <td>${row.entrada1}</td>
+            <td>${row.saida1}</td>
+            <td>${row.entrada2}</td>
+            <td>${row.saida2}</td>
+            <td>${row.expediente}</td>
+            <td>${row.total}</td>
+            <td style="color: #2e7d32; font-weight: bold;">${row.he50.toFixed(2)}h</td>
+            <td style="color: #1b5e20; font-weight: bold;">${row.he100.toFixed(2)}h</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// Função para renderizar o gráfico
+function renderizarGrafico(dados) {
+    const ctx = document.getElementById('heChart').getContext('2d');
+    
+    if (graficoAtual) {
+        graficoAtual.destroy();
+    }
+    
+    if (dados.length === 0) {
+        return;
+    }
+    
+    // Pegar últimos 30 registros para o gráfico
+    const dadosGrafico = dados.slice(-30);
+    const labels = dadosGrafico.map(row => row.data);
+    const he50Data = dadosGrafico.map(row => row.he50);
+    const he100Data = dadosGrafico.map(row => row.he100);
+
+    graficoAtual = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: 'HE 50%',
+                    data: he50Data,
+                    backgroundColor: 'rgba(46, 125, 50, 0.8)',
+                    borderColor: 'rgba(46, 125, 50, 1)',
+                    borderWidth: 2
+                },
+                {
+                    label: 'HE 100%',
+                    data: he100Data,
+                    backgroundColor: 'rgba(76, 175, 80, 0.8)',
+                    borderColor: 'rgba(76, 175, 80, 1)',
+                    borderWidth: 2
                 }
-                
-                if (jsonData.length > 2) {
-                    console.log(`�� Linha 3:`, jsonData[2]);
-                }
-                
-                // Procurar coluna com nome
-                const cabecalho = jsonData[0];
-                const indiceNome = cabecalho.findIndex(col => 
-                    col && col.toString().toLowerCase().includes('nome')
-                );
-                
-                if (indiceNome >= 0) {
-                    console.log(`👤 Coluna "nome" encontrada no índice: ${indiceNome}`);
-                    
-                    // Listar todos os nomes encontrados
-                    const nomes = [];
-                    for (let i = 1; i < Math.min(jsonData.length, 10); i++) {
-                        const nome = jsonData[i][indiceNome];
-                        if (nome) {
-                            nomes.push(nome);
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        font: {
+                            size: 14,
+                            weight: 'bold'
                         }
                     }
-                    console.log(`👥 Nomes encontrados (primeiros 10):`, nomes);
-                    
-                    // Verificar se o usuário atual está na lista
-                    const nomeUsuario = usuarioLogado.nome.toLowerCase();
-                    const encontrado = nomes.some(nome => 
-                        nome.toString().toLowerCase().includes(nomeUsuario.split(' ')[0]) ||
-                        nomeUsuario.includes(nome.toString().toLowerCase())
-                    );
-                    
-                    if (encontrado) {
-                        console.log(`✅ Usuário "${usuarioLogado.nome}" ENCONTRADO nesta aba!`);
-                    } else {
-                        console.log(`❌ Usuário "${usuarioLogado.nome}" NÃO encontrado nesta aba`);
+                },
+                title: {
+                    display: true,
+                    text: 'Horas Extras - Últimos 30 Registros',
+                    font: {
+                        size: 16,
+                        weight: 'bold'
                     }
-                } else {
-                    console.log(`❌ Coluna "nome" NÃO encontrada nesta aba`);
-                    console.log(`📋 Colunas disponíveis:`, cabecalho);
                 }
-            } else {
-                console.log(`⚠️ Aba "${sheetName}" está vazia`);
-            }
-        });
-        
-        console.log('\n🎉 === TESTE COMPLETO FINALIZADO ===');
-        
-        // Salvar dados para uso posterior
-        window.dadosExcelTeste = workbook;
-        
-    } catch (error) {
-        console.error('💥 ERRO NO TESTE COMPLETO:', error);
-        console.error('💥 Stack trace:', error.stack);
-        
-        // Tentar diagnóstico adicional
-        console.log('🔧 Tentando diagnóstico adicional...');
-        await diagnosticoAdicional();
-    }
-}
-
-// Diagnóstico adicional em caso de erro
-async function diagnosticoAdicional() {
-    console.log('🔧 === DIAGNÓSTICO ADICIONAL ===');
-    
-    try {
-        // Testar URLs alternativas
-        const urlsAlternativas = [
-            'https://github.com/josepaulojuniorbi/efarohe/raw/main/base_dados.xlsx',
-            'https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/main/base_dados.xlsx'
-        ];
-        
-        for (const url of urlsAlternativas) {
-            console.log(`🔗 Testando URL alternativa: ${url}`);
-            try {
-                const response = await fetch(url);
-                console.log(`  Status: ${response.status}`);
-                if (response.ok) {
-                    const size = response.headers.get('content-length');
-                    console.log(`  ✅ URL alternativa funciona! Tamanho: ${size} bytes`);
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Horas',
+                        font: {
+                            size: 14,
+                            weight: 'bold'
+                        }
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Data',
+                        font: {
+                            size: 14,
+                            weight: 'bold'
+                        }
+                    }
                 }
-            } catch (e) {
-                console.log(`  ❌ URL alternativa falhou: ${e.message}`);
             }
         }
-        
-        // Verificar CORS
-        console.log('🌐 Verificando possíveis problemas de CORS...');
-        
-        // Verificar se estamos em localhost
-        const isLocalhost = window.location.hostname === 'localhost' || 
-                           window.location.hostname === '127.0.0.1' ||
-                           window.location.protocol === 'file:';
-        
-        console.log('🏠 Executando em localhost?', isLocalhost);
-        console.log('🌐 Protocol:', window.location.protocol);
-        console.log('🌐 Hostname:', window.location.hostname);
-        
-        if (window.location.protocol === 'file:') {
-            console.log('⚠️ ATENÇÃO: Executando via file:// - isso pode causar problemas de CORS!');
-            console.log('💡 SOLUÇÃO: Use um servidor local (Live Server, Python -m http.server, etc.)');
-        }
-        
-    } catch (error) {
-        console.error('💥 Erro no diagnóstico adicional:', error);
-    }
+    });
 }
-
-// Função para sair
-function logout() {
-    console.log('👋 Logout realizado');
-    usuarioLogado = null;
-    document.getElementById('loginScreen').style.display = 'flex';
-    document.getElementById('dashboard').style.display = 'none';
-    document.getElementById('loginError').style.display = 'none';
-}
-
-// Função para teste manual (adicione um botão se quiser)
-window.testeManual = function() {
-    console.log('🧪 Iniciando teste manual...');
-    testarExcelCompleto();
-}
-
-console.log('✅ Script de diagnóstico carregado - Pronto para teste!');
-// Função para mostrar o conteúdo da planilha
-window.mostrarConteudoPlanilha = function() {
-    if (window.dadosExcelTeste) {
-        const worksheet = window.dadosExcelTeste.Sheets['Plan1'];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-        
-        console.log('📋 === CONTEÚDO COMPLETO DA PLANILHA ===');
-        console.log('📊 Total de linhas:', jsonData.length);
-        
-        // Mostrar cabeçalho
-        console.log('�� CABEÇALHO (Linha 1):', jsonData[0]);
-        
-        // Mostrar primeiras 5 linhas de dados
-        for (let i = 1; i <= Math.min(5, jsonData.length - 1); i++) {
-            console.log(`📝 Linha ${i + 1}:`, jsonData[i]);
-        }
-        
-        // Mostrar estrutura das colunas
-        console.log('📋 === ESTRUTURA DAS COLUNAS ===');
-        jsonData[0].forEach((coluna, index) => {
-            console.log(`Coluna ${index}: "${coluna}"`);
-        });
-    } else {
-        console.log('❌ Dados do Excel não disponíveis');
-    }
-};
-
