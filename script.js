@@ -363,6 +363,33 @@ function logout() {
 window.testeManual = function() {
     console.log('🧪 Iniciando teste manual...');
     testarExcelCompleto();
-};
+}
 
 console.log('✅ Script de diagnóstico carregado - Pronto para teste!');
+// Função para mostrar o conteúdo da planilha
+window.mostrarConteudoPlanilha = function() {
+    if (window.dadosExcelTeste) {
+        const worksheet = window.dadosExcelTeste.Sheets['Plan1'];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        
+        console.log('📋 === CONTEÚDO COMPLETO DA PLANILHA ===');
+        console.log('📊 Total de linhas:', jsonData.length);
+        
+        // Mostrar cabeçalho
+        console.log('�� CABEÇALHO (Linha 1):', jsonData[0]);
+        
+        // Mostrar primeiras 5 linhas de dados
+        for (let i = 1; i <= Math.min(5, jsonData.length - 1); i++) {
+            console.log(`📝 Linha ${i + 1}:`, jsonData[i]);
+        }
+        
+        // Mostrar estrutura das colunas
+        console.log('📋 === ESTRUTURA DAS COLUNAS ===');
+        jsonData[0].forEach((coluna, index) => {
+            console.log(`Coluna ${index}: "${coluna}"`);
+        });
+    } else {
+        console.log('❌ Dados do Excel não disponíveis');
+    }
+};
+
