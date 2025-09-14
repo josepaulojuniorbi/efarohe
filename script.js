@@ -1,10 +1,10 @@
-// URL da planilha no GitHub (formato raw)
-const PLANILHA_URL = 'https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/main/base_dados.xlsx';
+const SHEET_ID = '1G70SDPnu_jGtbAuLJPmUrOEsEydlivo4zIrWUeIG_1Y'; // ID da planilha fornecida
+const API_KEY = 'AIzaSyBlR6MOUqtMcryJ3uVEzuykjijQyFogN4g'; // API Key fornecida
 
 // Usuários e senhas
 const usuarios = [
     { nome: 'José Paulo', email: 'josepaulojunior@live.com', senha: 'efaro2024' },
-    { nome: 'Deise Borsato', email: 'deise.silva@efaro.com.br', senha: 'efaro2024' },
+    { nome: 'Deise Borsato', email: 'deise.silva@efaro.com', senha: 'efaro2024' },
     { nome: 'Everton Henrique', email: 'everton@efaro.com.br', senha: 'efaro2024' },
     { nome: 'Matheus Rodas', email: 'matheus@efaro.com.br', senha: 'efaro2024' }
 ];
@@ -44,42 +44,58 @@ function logout() {
     document.getElementById('dashboard').style.display = 'none';
 }
 
-// Função para carregar os dados da planilha
-async function carregarDados() {
+// Função para buscar os nomes das abas da planilha
+async function fetchSheetNames() {
     try {
-        // Faz o download do arquivo da planilha
-        const response = await fetch(PLANILHA_URL);
-        const arrayBuffer = await response.arrayBuffer();
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?key=${API_KEY}`;
+        const response = await fetch(url);
+        const data = await response.json();
 
-        // Lê o arquivo Excel usando SheetJS
-        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-        const sheetName = workbook.SheetNames[0]; // Nome da primeira aba
-        const sheet = workbook.Sheets[sheetName];
-
-        // Converte os dados da planilha para JSON
-        const dados = XLSX.utils.sheet_to_json(sheet);
-
-        // Filtra os dados do usuário logado
-        const dadosUsuario = dados.filter(d => d.Nome === usuarioLogado.nome);
-
-        // Calcula horas extras e atualiza os dados
-        const dadosComHorasExtras = dadosUsuario.map(row => {
-            const expediente = row.Expediente || '08:48';
-            const total = row.Total || '0:00:00';
-            const horasExtras = calcularHorasExtras(expediente, total);
-
-            return {
-                ...row,
-                he50: horasExtras.he50,
-                he100: horasExtras.he100
-            };
-        });
-
-        // Renderiza a tabela e o gráfico
-        renderizarTabela(dadosComHorasExtras);
-        renderizarGrafico(dadosComHorasExtras);
+        if (data.sheets) {
+            return data.sheets.map(sheet => sheet.properties.title);
+        } else {
+            console.error('Erro: Não foi possível obter os nomes das abas.', data);
+            return [];
+        }
     } catch (error) {
-        console.error('Erro ao carregar a planilha:', error);
+        console.error('Erro ao buscar os nomes das abas:', error);
+        return [];
+    }
+}
+
+// Função para buscar os dados de uma aba específica
+async function fetchSheetData(sheetName) {
+    try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(sheetName)}!A1:Z1000?key=${API_KEY}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.values) {
+            const rows = data.values.slice(1); // Ignora os cabeçalhos
+            return rows.map(row => {
+                const expediente = row[6] || '08:48';
+                const total = row[7] || '0:00:00';
+                const horasExtras = calcularHorasExtras(expediente, total);
+
+                return {
+                    data: row[0] || '-',
+                    dia: row[1] || '-',
+                    entrada1: row[2] || '-',
+                    saida1: row[3] || '-',
+                    entrada2: row[4] || '-',
+                    saida2: row[5] || '-',
+                    expediente,
+                    total,
+                    he50: horasExtras.he50,
+                    he100: horasExtras.he100,
+                    nome: row[10] || 'Desconhecido' // Nome do usuário
+                };
+            });
+        } else {
+            console.error('Erro: Não foi possível obter os dados da planilha.', data);
+        }
+    } catch (error) {
+        console.error('Erro ao buscar os dados:', error);
     }
 }
 
@@ -95,16 +111,16 @@ function calcularHorasExtras(expediente, total) {
 
     if (saldo > 0) {
         if (saldo <= 60) {
-            he50 = saldo; // Até 1 hora extra é considerada 50%
+            he50 = saldo;
         } else {
-            he50 = 60; // Primeira hora é 50%
-            he100 = saldo - 60; // O restante é 100%
+            he50 = 60;
+            he100 = saldo - 60;
         }
     }
 
     return {
-        he50: he50 / 60, // Converte minutos para horas
-        he100: he100 / 60 // Converte minutos para horas
+        he50: he50 / 60,
+        he100: he100 / 60
     };
 }
 
@@ -120,6 +136,20 @@ function minutesToTime(minutes) {
     return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
 }
 
+// Função para carregar os dados e renderizar
+async function carregarDados() {
+    const periodos = await fetchSheetNames();
+
+    const dadosUsuario = [];
+    for (const periodo of periodos) {
+        const dados = await fetchSheetData(periodo);
+        dadosUsuario.push(...dados.filter(d => d.nome === usuarioLogado.nome));
+    }
+
+    renderizarTabela(dadosUsuario);
+    renderizarGrafico(dadosUsuario);
+}
+
 // Função para renderizar a tabela
 function renderizarTabela(dados) {
     const tbody = document.getElementById('tableBody');
@@ -128,14 +158,14 @@ function renderizarTabela(dados) {
     dados.forEach(row => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${row.Data || '-'}</td>
-            <td>${row.Dia || '-'}</td>
-            <td>${row.Entrada1 || '-'}</td>
-            <td>${row.Saída1 || '-'}</td>
-            <td>${row.Entrada2 || '-'}</td>
-            <td>${row.Saída2 || '-'}</td>
-            <td>${row.Expediente || '08:48'}</td>
-            <td>${row.Total || '0:00:00'}</td>
+            <td>${row.data}</td>
+            <td>${row.dia}</td>
+            <td>${row.entrada1}</td>
+            <td>${row.saida1}</td>
+            <td>${row.entrada2}</td>
+            <td>${row.saida2}</td>
+            <td>${row.expediente}</td>
+            <td>${row.total}</td>
             <td>${row.he50.toFixed(2)}h</td>
             <td>${row.he100.toFixed(2)}h</td>
         `;
@@ -146,9 +176,9 @@ function renderizarTabela(dados) {
 // Função para renderizar o gráfico
 function renderizarGrafico(dados) {
     const ctx = document.getElementById('heChart').getContext('2d');
-    const labels = dados.map(row => row.Data);
-    const he50Data = dados.map(row => parseFloat(row.he50) || 0);
-    const he100Data = dados.map(row => parseFloat(row.he100) || 0);
+    const labels = dados.map(row => row.data);
+    const he50Data = dados.map(row => row.he50);
+    const he100Data = dados.map(row => row.he100);
 
     new Chart(ctx, {
         type: 'bar',
