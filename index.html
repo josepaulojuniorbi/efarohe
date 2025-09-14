@@ -3,52 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de Horários</title>
+    <title>Dashboard de Horas Extras</title>
+    <!-- Link para o CSS -->
+    <link rel="stylesheet" href="styles.css">
+    <!-- Biblioteca Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Biblioteca SheetJS para leitura de Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: center;
-        }
-        th {
-            background-color: #f4f4f4;
-        }
-    </style>
 </head>
 <body>
-    <h1>Dashboard de Horários</h1>
-    <p>Os dados da planilha serão carregados automaticamente abaixo:</p>
+    <!-- Tela de Login -->
+    <div id="loginScreen" class="screen">
+        <form id="loginForm" class="login-form">
+            <h1>Login</h1>
+            <div class="form-group">
+                <label for="email">E-mail:</label>
+                <input type="email" id="email" placeholder="Digite seu e-mail" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Senha:</label>
+                <input type="password" id="password" placeholder="Digite sua senha" required>
+            </div>
+            <button type="submit" class="btn">Entrar</button>
+            <p id="loginError" class="error-message" style="display: none;">E-mail ou senha inválidos!</p>
+        </form>
+    </div>
 
-    <!-- Tabela para exibir os dados da planilha -->
-    <table id="tabela-dados">
-        <thead>
-            <tr>
-                <th>Data</th>
-                <th>Dia</th>
-                <th>Entrada1</th>
-                <th>Saída1</th>
-                <th>Entrada2</th>
-                <th>Saída2</th>
-                <th>Expediente</th>
-                <th>Total</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- Os dados da planilha serão inseridos aqui -->
-        </tbody>
-    </table>
+    <!-- Dashboard -->
+    <div id="dashboard" class="screen" style="display: none;">
+        <header>
+            <h1>Bem-vindo, <span id="userName"></span>!</h1>
+            <button onclick="logout()" class="btn logout-btn">Sair</button>
+        </header>
 
-    <!-- Script para carregar e processar os dados -->
+        <!-- Tabela de Dados -->
+        <section>
+            <h2>Tabela de Horas</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Dia</th>
+                        <th>Entrada 1</th>
+                        <th>Saída 1</th>
+                        <th>Entrada 2</th>
+                        <th>Saída 2</th>
+                        <th>Expediente</th>
+                        <th>Total</th>
+                        <th>HE 50%</th>
+                        <th>HE 100%</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Os dados da planilha serão inseridos aqui -->
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Gráfico de Horas Extras -->
+        <section>
+            <h2>Gráfico de Horas Extras</h2>
+            <canvas id="heChart"></canvas>
+        </section>
+    </div>
+
+    <!-- Script JavaScript -->
     <script src="script.js"></script>
 </body>
 </html>
