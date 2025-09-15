@@ -119,55 +119,55 @@ async function carregarDadosExcel() {
 }
 
 // ========================================
-// FUNÇÕES DE CÁLCULO CORRIGIDAS E DEFINITIVAS
+// FUNÇÕES DE CÁLCULO CORRIGIDAS CONFORME REGRAS
 // ========================================
 
-// Função CORRIGIDA para verificar se é fim de semana (mais rigorosa)
-function isFimDeSemana(dia) {
+// Função para verificar se é fim de semana ou feriado
+function isFimDeSemanaOuFeriado(dia) {
     if (!dia) return false;
     
     const diaLimpo = dia.toLowerCase().trim();
     
-    // Lista EXATA de fins de semana (sem variações que podem dar falso positivo)
+    // Lista de fins de semana
     const sabados = ['sábado', 'sabado', 'saturday', 'sab'];
     const domingos = ['domingo', 'sunday', 'dom'];
     
+    // Lista de feriados (adicione conforme necessário)
+    const feriados = ['feriado', 'holiday'];
+    
     const ehSabado = sabados.includes(diaLimpo);
     const ehDomingo = domingos.includes(diaLimpo);
-    const ehFimDeSemana = ehSabado || ehDomingo;
+    const ehFeriado = feriados.includes(diaLimpo);
+    const ehFimDeSemanaOuFeriado = ehSabado || ehDomingo || ehFeriado;
     
-    if (ehFimDeSemana) {
-        console.log(`🎯 FIM DE SEMANA DETECTADO: "${dia}" (${ehSabado ? 'SÁBADO' : 'DOMINGO'})`);
+    if (ehFimDeSemanaOuFeriado) {
+        let tipo = ehSabado ? 'SÁBADO' : ehDomingo ? 'DOMINGO' : 'FERIADO';
+        console.log(`🎯 FIM DE SEMANA/FERIADO DETECTADO: "${dia}" (${tipo})`);
     }
     
-    return ehFimDeSemana;
+    return ehFimDeSemanaOuFeriado;
 }
 
-// Função CORRIGIDA para converter hora para minutos (mais robusta)
+// Função para converter hora para minutos
 function timeToMinutes(time) {
-    // Lista de valores que devem ser considerados como 0
-    const valoresVazios = [null, undefined, '', '-', '00:00:00', '00:00', '0', 0, '12:00:00', '12:00'];
+    const valoresVazios = [null, undefined, '', '-', '00:00:00', '00:00', '0', 0];
     
     if (valoresVazios.includes(time)) {
         return 0;
     }
     
-    // Converter para string e limpar
     const timeStr = String(time).trim();
     
-    // Se ainda estiver vazio ou for um dos valores vazios
     if (!timeStr || valoresVazios.includes(timeStr)) {
         return 0;
     }
     
-    // Dividir por ':'
     const parts = timeStr.split(':');
     
     if (parts.length >= 2) {
         const hours = parseInt(parts[0], 10);
         const minutes = parseInt(parts[1], 10);
         
-        // Validar se são números válidos
         if (!isNaN(hours) && !isNaN(minutes) && hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
             const totalMinutos = hours * 60 + minutes;
             return totalMinutos;
@@ -177,7 +177,7 @@ function timeToMinutes(time) {
     return 0;
 }
 
-// Função DEFINITIVA para converter minutos para hora
+// Função para converter minutos para hora
 function minutesToTime(minutes) {
     if (!minutes || minutes <= 0) return '00:00';
     
@@ -187,7 +187,7 @@ function minutesToTime(minutes) {
     return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
 }
 
-// Função DEFINITIVA para calcular horas trabalhadas
+// Função para calcular horas trabalhadas
 function calcularHorasTrabalhadas(entrada1, saida1, entrada2, saida2) {
     let totalMinutos = 0;
     
@@ -212,46 +212,59 @@ function calcularHorasTrabalhadas(entrada1, saida1, entrada2, saida2) {
     return totalMinutos;
 }
 
-// Função CORRIGIDA para calcular horas extras
+// Função CORRIGIDA para calcular horas extras conforme NOVAS REGRAS
 function calcularHorasExtras(expediente, totalMinutosTrabalhados, dia) {
+    console.log(`\\n📊 CALCULANDO HORAS EXTRAS (REGRAS CORRETAS):`);
+    console.log(`📊 Dia: "${dia}"`);
+    console.log(`📊 Total trabalhado: ${totalMinutosTrabalhados} min = ${minutesToTime(totalMinutosTrabalhados)}`);
+    console.log(`📊 Expediente: "${expediente}"`);
+    
     let he50 = 0;
     let he100 = 0;
     
-    // REGRA 1: Se for fim de semana, TUDO é HE 100%
-    if (isFimDeSemana(dia)) {
+    // REGRA 1: Se for fim de semana ou feriado, TUDO é HE 100%
+    if (isFimDeSemanaOuFeriado(dia)) {
         he100 = totalMinutosTrabalhados / 60;
+        console.log(`🎯 FIM DE SEMANA/FERIADO! TUDO vira HE 100%: ${he100.toFixed(2)}h`);
         return { he50, he100 };
     }
     
-    // REGRA 2: Para dias úteis, calcular baseado no expediente
+    // REGRA 2: Para dias úteis, verificar expediente
     const expedienteMinutos = timeToMinutes(expediente);
+    console.log(`📊 Expediente em minutos: ${expedienteMinutos}`);
     
-    // Se expediente for 0 ou inválido, tratar como fim de semana
+    // REGRA 3: Se expediente for 0 ou inválido, DEIXAR ZERADO
     if (expedienteMinutos === 0) {
-        he100 = totalMinutosTrabalhados / 60;
-        return { he50, he100 };
+        console.log(`📊 EXPEDIENTE ZERO/INVÁLIDO! Deixando HE zeradas`);
+        return { he50: 0, he100: 0 };
     }
     
-    // Calcular saldo de horas extras (só conta se trabalhou MAIS que o expediente)
+    // Calcular saldo de horas extras
     const saldoMinutos = totalMinutosTrabalhados - expedienteMinutos;
+    console.log(`📊 Saldo: ${saldoMinutos} minutos`);
     
     if (saldoMinutos > 0) {
-        // Primeiras 2 horas extras = HE 50%
-        if (saldoMinutos <= 120) { // 120 minutos = 2 horas
+        // REGRA CORRIGIDA: Até 60min extras = HE 50%, acima = HE 100%
+        if (saldoMinutos <= 60) { // 60 minutos = 1 hora
             he50 = saldoMinutos / 60;
+            console.log(`📊 Até 60min extras (17:48): HE 50% = ${he50.toFixed(2)}h`);
         } else {
-            // Primeiras 2h = HE 50%, resto = HE 100%
-            he50 = 120 / 60; // Exatamente 2 horas
-            he100 = (saldoMinutos - 120) / 60;
+            // Primeiros 60min = HE 50%, resto = HE 100%
+            he50 = 60 / 60; // Exatamente 1 hora
+            he100 = (saldoMinutos - 60) / 60;
+            console.log(`📊 Mais de 60min extras: HE 50% = ${he50.toFixed(2)}h | HE 100% = ${he100.toFixed(2)}h`);
         }
+    } else {
+        console.log(`📊 SEM HORAS EXTRAS (trabalhou ${Math.abs(saldoMinutos)} min a menos que o expediente)`);
     }
     
+    console.log(`📊 RESULTADO FINAL: HE50=${he50.toFixed(2)}h | HE100=${he100.toFixed(2)}h`);
     return { he50, he100 };
 }
 
 // Função para processar dados (MESMA PLANILHA PARA TODOS)
 function processarDadosUsuario() {
-    console.log(`\n🚀 PROCESSANDO DADOS PARA: ${usuarioLogado.nome}`);
+    console.log(`\\n🚀 PROCESSANDO DADOS PARA: ${usuarioLogado.nome}`);
     const dadosUsuario = [];
     
     if (!dadosExcel) {
@@ -259,13 +272,13 @@ function processarDadosUsuario() {
         return dadosUsuario;
     }
     
-    // CORRIGIDO: Processar TODAS as abas da planilha (mesmos dados para todos)
+    // Processar TODAS as abas da planilha
     Object.keys(dadosExcel).forEach(sheetName => {
         const dados = dadosExcel[sheetName];
         
         if (!dados || dados.length < 2) return;
         
-        console.log(`\n📄 Processando aba: ${sheetName} - ${dados.length} linhas`);
+        console.log(`\\n📄 Processando aba: ${sheetName} - ${dados.length} linhas`);
         
         // Processar todas as linhas (começando da linha 1, pulando cabeçalho)
         for (let i = 1; i < dados.length; i++) {
@@ -281,7 +294,10 @@ function processarDadosUsuario() {
             const saida1 = linha[3] || '';
             const entrada2 = linha[4] || '';
             const saida2 = linha[5] || '';
-            const expediente = linha[6] || '08:48';
+            const expediente = linha[6] || '08:48'; // Expediente padrão
+            
+            console.log(`\\n📝 Linha ${i}: Data="${data}", Dia="${dia}"`);
+            console.log(`📝 Horários: E1="${entrada1}", S1="${saida1}", E2="${entrada2}", S2="${saida2}", Exp="${expediente}"`);
             
             // Verificar se tem uma data válida
             if (data && data !== '00:00:00' && data !== '' && data !== '0' && data !== 0) {
@@ -289,7 +305,7 @@ function processarDadosUsuario() {
                 // Calcular horas trabalhadas
                 const totalMinutosTrabalhados = calcularHorasTrabalhadas(entrada1, saida1, entrada2, saida2);
                 
-                // PROCESSAR TODOS OS REGISTROS, MESMO COM 0 HORAS
+                // Calcular horas extras com as NOVAS REGRAS
                 const totalFormatado = minutesToTime(totalMinutosTrabalhados);
                 const horasExtras = calcularHorasExtras(expediente, totalMinutosTrabalhados, dia);
                 
@@ -310,6 +326,9 @@ function processarDadosUsuario() {
                 };
                 
                 dadosUsuario.push(registro);
+                console.log(`✅ REGISTRO ADICIONADO: ${data} - ${dia} - Total: ${totalFormatado} - HE50: ${horasExtras.he50.toFixed(2)}h - HE100: ${horasExtras.he100.toFixed(2)}h`);
+            } else {
+                console.log(`⚠️ Linha ${i} ignorada - data inválida: "${data}"`);
             }
         }
     });
@@ -317,7 +336,14 @@ function processarDadosUsuario() {
     // Ordenar por data (mais recente primeiro)
     dadosUsuario.sort((a, b) => new Date(b.dataOriginal) - new Date(a.dataOriginal));
     
-    console.log(`✅ ${dadosUsuario.length} registros processados para ${usuarioLogado.nome}`);
+    console.log(`\\n🎉 PROCESSAMENTO CONCLUÍDO!`);
+    console.log(`🎉 TOTAL DE REGISTROS PROCESSADOS: ${dadosUsuario.length}`);
+    
+    // Mostrar resumo das HE
+    const totalHE50 = dadosUsuario.reduce((sum, row) => sum + (row.he50 || 0), 0);
+    const totalHE100 = dadosUsuario.reduce((sum, row) => sum + (row.he100 || 0), 0);
+    console.log(`🎉 TOTAL HE 50%: ${totalHE50.toFixed(2)}h`);
+    console.log(`🎉 TOTAL HE 100%: ${totalHE100.toFixed(2)}h`);
     
     return dadosUsuario;
 }
@@ -391,8 +417,8 @@ function gerarAnaliseHorasExtras(dados) {
     const mediaHE100 = registrosHE100.length > 0 ? totalHE100 / registrosHE100.length : 0;
     
     // Separar HE 100% por tipo
-    const he100FimSemana = dados.filter(row => row.he100 > 0 && isFimDeSemana(row.dia));
-    const he100DiasUteis = dados.filter(row => row.he100 > 0 && !isFimDeSemana(row.dia));
+    const he100FimSemana = dados.filter(row => row.he100 > 0 && isFimDeSemanaOuFeriado(row.dia));
+    const he100DiasUteis = dados.filter(row => row.he100 > 0 && !isFimDeSemanaOuFeriado(row.dia));
     
     const totalHE100FimSemana = he100FimSemana.reduce((sum, row) => sum + row.he100, 0);
     const totalHE100DiasUteis = he100DiasUteis.reduce((sum, row) => sum + row.he100, 0);
@@ -403,7 +429,7 @@ function gerarAnaliseHorasExtras(dados) {
         • <strong>Total de horas:</strong> ${totalHE50.toFixed(2)}h<br>
         • <strong>Média por dia:</strong> ${mediaHE50.toFixed(2)}h<br>
         • <strong>Maior registro:</strong> ${registrosHE50.length > 0 ? Math.max(...registrosHE50.map(r => r.he50)).toFixed(2) : '0.00'}h<br>
-        • <strong>Observação:</strong> Primeiras 2 horas extras em dias úteis
+        • <strong>Observação:</strong> Até 60min extras (17:48) em dias úteis
     `;
     
     // Gerar texto da análise HE 100%
@@ -411,8 +437,8 @@ function gerarAnaliseHorasExtras(dados) {
         • <strong>Total de registros:</strong> ${registrosHE100.length} dias<br>
         • <strong>Total de horas:</strong> ${totalHE100.toFixed(2)}h<br>
         • <strong>Média por dia:</strong> ${mediaHE100.toFixed(2)}h<br>
-        • <strong>Fins de semana:</strong> ${he100FimSemana.length} dias (${totalHE100FimSemana.toFixed(2)}h)<br>
-        • <strong>Dias úteis (>2h):</strong> ${he100DiasUteis.length} dias (${totalHE100DiasUteis.toFixed(2)}h)<br>
+        • <strong>Fins de semana/Feriados:</strong> ${he100FimSemana.length} dias (${totalHE100FimSemana.toFixed(2)}h)<br>
+        • <strong>Dias úteis (>60min):</strong> ${he100DiasUteis.length} dias (${totalHE100DiasUteis.toFixed(2)}h)<br>
         • <strong>Maior registro:</strong> ${registrosHE100.length > 0 ? Math.max(...registrosHE100.map(r => r.he100)).toFixed(2) : '0.00'}h
     `;
     
@@ -554,7 +580,7 @@ function atualizarEstatisticas(dados) {
     const totalHE100 = dados.reduce((sum, row) => sum + (row.he100 || 0), 0);
     const totalHorasExtras = totalHE50 + totalHE100;
     
-    console.log(`\n📊 ESTATÍSTICAS PARA ${usuarioLogado.nome}:`);
+    console.log(`\\n📊 ESTATÍSTICAS PARA ${usuarioLogado.nome}:`);
     console.log(`📊 Total de registros: ${totalRegistros}`);
     console.log(`📊 Total HE 50%: ${totalHE50.toFixed(2)}h`);
     console.log(`📊 Total HE 100%: ${totalHE100.toFixed(2)}h`);
@@ -601,7 +627,7 @@ function renderizarTabela(dados) {
         }
         
         // Destacar fins de semana
-        if (isFimDeSemana(row.dia)) {
+        if (isFimDeSemanaOuFeriado(row.dia)) {
             tr.style.backgroundColor = '#e3f2fd';
             tr.style.fontWeight = 'bold';
         }
