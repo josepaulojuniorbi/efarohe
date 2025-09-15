@@ -148,9 +148,9 @@ function isFimDeSemanaOuFeriado(dia) {
     return ehFimDeSemanaOuFeriado;
 }
 
-// Função para converter hora para minutos
+// Função CORRIGIDA para converter hora para minutos (com suporte AM/PM)
 function timeToMinutes(time) {
-    const valoresVazios = [null, undefined, '', '-', '00:00:00', '00:00', '0', 0];
+    const valoresVazios = [null, undefined, '', '-', '00:00:00', '00:00', '0', 0, '12:00:00 AM', '12:00 AM'];
     
     if (valoresVazios.includes(time)) {
         return 0;
@@ -162,18 +162,50 @@ function timeToMinutes(time) {
         return 0;
     }
     
-    const parts = timeStr.split(':');
-    
-    if (parts.length >= 2) {
-        const hours = parseInt(parts[0], 10);
-        const minutes = parseInt(parts[1], 10);
+    // NOVO: Tratar formato AM/PM
+    if (timeStr.includes('AM') || timeStr.includes('PM')) {
+        const isAM = timeStr.includes('AM');
+        const isPM = timeStr.includes('PM');
         
-        if (!isNaN(hours) && !isNaN(minutes) && hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
-            const totalMinutos = hours * 60 + minutes;
-            return totalMinutos;
+        // Remover AM/PM e limpar
+        const cleanTime = timeStr.replace(/AM|PM/g, '').trim();
+        const parts = cleanTime.split(':');
+        
+        if (parts.length >= 2) {
+            let hours = parseInt(parts[0], 10);
+            const minutes = parseInt(parts[1], 10);
+            
+            if (!isNaN(hours) && !isNaN(minutes)) {
+                // Converter para formato 24h
+                if (isPM && hours !== 12) {
+                    hours += 12;
+                } else if (isAM && hours === 12) {
+                    hours = 0;
+                }
+                
+                if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
+                    const totalMinutos = hours * 60 + minutes;
+                    console.log(`⏰ "${timeStr}" convertido para ${totalMinutos} minutos (${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')})`);
+                    return totalMinutos;
+                }
+            }
+        }
+    } else {
+        // Formato normal (sem AM/PM)
+        const parts = timeStr.split(':');
+        
+        if (parts.length >= 2) {
+            const hours = parseInt(parts[0], 10);
+            const minutes = parseInt(parts[1], 10);
+            
+            if (!isNaN(hours) && !isNaN(minutes) && hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
+                const totalMinutos = hours * 60 + minutes;
+                return totalMinutos;
+            }
         }
     }
     
+    console.log(`⚠️ Hora inválida: "${time}"`);
     return 0;
 }
 
@@ -195,26 +227,37 @@ function calcularHorasTrabalhadas(entrada1, saida1, entrada2, saida2) {
     const entrada1Min = timeToMinutes(entrada1);
     const saida1Min = timeToMinutes(saida1);
     
+    console.log(`🕐 Período 1: E1=${entrada1Min}min (${entrada1}) → S1=${saida1Min}min (${saida1})`);
+    
     if (entrada1Min > 0 && saida1Min > 0 && saida1Min > entrada1Min) {
         const periodo1 = saida1Min - entrada1Min;
         totalMinutos += periodo1;
+        console.log(`🕐 Período 1 válido: ${periodo1} minutos`);
+    } else {
+        console.log(`🕐 Período 1 inválido ou zero`);
     }
     
     // Período 2 (tarde - só se existir)
     const entrada2Min = timeToMinutes(entrada2);
     const saida2Min = timeToMinutes(saida2);
     
+    console.log(`🕐 Período 2: E2=${entrada2Min}min (${entrada2}) → S2=${saida2Min}min (${saida2})`);
+    
     if (entrada2Min > 0 && saida2Min > 0 && saida2Min > entrada2Min) {
         const periodo2 = saida2Min - entrada2Min;
         totalMinutos += periodo2;
+        console.log(`🕐 Período 2 válido: ${periodo2} minutos`);
+    } else {
+        console.log(`🕐 Período 2 inválido ou zero`);
     }
     
+    console.log(`🕐 TOTAL TRABALHADO: ${totalMinutos} minutos = ${minutesToTime(totalMinutos)}`);
     return totalMinutos;
 }
 
 // Função CORRIGIDA para calcular horas extras conforme NOVAS REGRAS
 function calcularHorasExtras(expediente, totalMinutosTrabalhados, dia) {
-    console.log(`\\n📊 CALCULANDO HORAS EXTRAS (REGRAS CORRETAS):`);
+    console.log(`\n📊 CALCULANDO HORAS EXTRAS (REGRAS CORRETAS):`);
     console.log(`📊 Dia: "${dia}"`);
     console.log(`📊 Total trabalhado: ${totalMinutosTrabalhados} min = ${minutesToTime(totalMinutosTrabalhados)}`);
     console.log(`📊 Expediente: "${expediente}"`);
@@ -264,7 +307,7 @@ function calcularHorasExtras(expediente, totalMinutosTrabalhados, dia) {
 
 // Função para processar dados (MESMA PLANILHA PARA TODOS)
 function processarDadosUsuario() {
-    console.log(`\\n🚀 PROCESSANDO DADOS PARA: ${usuarioLogado.nome}`);
+    console.log(`\n🚀 PROCESSANDO DADOS PARA: ${usuarioLogado.nome}`);
     const dadosUsuario = [];
     
     if (!dadosExcel) {
@@ -278,7 +321,7 @@ function processarDadosUsuario() {
         
         if (!dados || dados.length < 2) return;
         
-        console.log(`\\n📄 Processando aba: ${sheetName} - ${dados.length} linhas`);
+        console.log(`\n📄 Processando aba: ${sheetName} - ${dados.length} linhas`);
         
         // Processar todas as linhas (começando da linha 1, pulando cabeçalho)
         for (let i = 1; i < dados.length; i++) {
@@ -296,7 +339,7 @@ function processarDadosUsuario() {
             const saida2 = linha[5] || '';
             const expediente = linha[6] || '08:48'; // Expediente padrão
             
-            console.log(`\\n📝 Linha ${i}: Data="${data}", Dia="${dia}"`);
+            console.log(`\n📝 Linha ${i}: Data="${data}", Dia="${dia}"`);
             console.log(`📝 Horários: E1="${entrada1}", S1="${saida1}", E2="${entrada2}", S2="${saida2}", Exp="${expediente}"`);
             
             // Verificar se tem uma data válida
@@ -336,7 +379,7 @@ function processarDadosUsuario() {
     // Ordenar por data (mais recente primeiro)
     dadosUsuario.sort((a, b) => new Date(b.dataOriginal) - new Date(a.dataOriginal));
     
-    console.log(`\\n🎉 PROCESSAMENTO CONCLUÍDO!`);
+    console.log(`\n🎉 PROCESSAMENTO CONCLUÍDO!`);
     console.log(`🎉 TOTAL DE REGISTROS PROCESSADOS: ${dadosUsuario.length}`);
     
     // Mostrar resumo das HE
@@ -387,7 +430,16 @@ function formatarData(data) {
 }
 
 function formatarHora(hora) {
-    if (!hora || hora === '00:00:00' || hora === '0:00:00' || hora === '00:00' || hora === '' || hora === '0') {
+    if (!hora || hora === '00:00:00' || hora === '0:00:00' || hora === '00:00' || hora === '' || hora === '0' || hora === '12:00:00 AM' || hora === '12:00 AM') {
+        return '-';
+    }
+    
+    // Se for formato AM/PM, converter para 24h
+    if (typeof hora === 'string' && (hora.includes('AM') || hora.includes('PM'))) {
+        const minutos = timeToMinutes(hora);
+        if (minutos > 0) {
+            return minutesToTime(minutos);
+        }
         return '-';
     }
     
@@ -499,7 +551,7 @@ function configurarFiltros() {
         const anosDisponiveis = [...new Set(todosDados.map(item => {
             const data = new Date(item.dataOriginal);
             return data.getFullYear();
-        }))].sort((a, b) => b        }))].sort((a, b) => b - a);
+        }))].sort((a, b) => b - a);
         
         filtroAno.innerHTML = '<option value="">Todos os anos</option>';
         anosDisponiveis.forEach(ano => {
