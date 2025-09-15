@@ -243,3 +243,69 @@ canvas {
         padding: 10px;
     }
 }
+/* Adicione estes estilos ao seu CSS existente */
+
+.filtros-container {
+    background: rgba(255,255,255,0.1);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.filtros-container h3 {
+    margin: 0 0 15px 0;
+    font-size: 1.1em;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    padding-bottom: 8px;
+}
+
+.filtro-item {
+    margin-bottom: 12px;
+}
+
+.filtro-item label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+    opacity: 0.9;
+}
+
+.filtro-item select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 4px;
+    background: rgba(255,255,255,0.1);
+    color: white;
+    font-size: 0.9em;
+}
+
+.filtro-item select option {
+    background: #2e7d32;
+    color: white;
+}
+
+.btn-limpar {
+    width: 100%;
+    background-color: rgba(255,255,255,0.2);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+    padding: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    margin-bottom: 10px;
+}
+
+.btn-limpar:hover {
+    background-color: rgba(255,255,255,0.3);
+}
+
+.registros-info {
+    text-align: center;
+    font-size: 0.8em;
+    opacity: 0.8;
+    padding: 5px;
+    background: rgba(0,0,0,0.1);
+    border-radius: 4px;
+}
