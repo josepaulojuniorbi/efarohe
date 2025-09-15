@@ -4,7 +4,7 @@ const EXCEL_URL = 'https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/r
 // Usuários e senhas (todos mostram dados do José Paulo)
 const usuarios = [
     { nome: 'José Paulo', email: 'josepaulojunior@live.com', senha: 'efaro2024' },
-    { nome: 'Deise Borsato', email: 'deise.silva@efaro.com', senha: 'efaro2024' },
+    { nome: 'Deise Borsato', email: 'deise.silva@efaro.com.br', senha: 'efaro2024' },
     { nome: 'Everton Henrique', email: 'everton@efaro.com.br', senha: 'efaro2024' },
     { nome: 'Matheus Rodas', email: 'matheus@efaro.com.br', senha: 'efaro2024' }
 ];
@@ -14,26 +14,44 @@ let dadosExcel = null;
 let graficoAtual = null;
 let todosDados = []; // Armazenar todos os dados para filtros
 
+console.log('🚀 Script carregado - versão com diagnóstico');
+
 // Função de login
-document.getElementById('loginForm').addEventListener('submit', function (event) {
-    event.preventDefault();
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('📄 DOM carregado');
+    
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            console.log('🔐 Tentativa de login iniciada');
 
-    const email = document.getElementById('email').value;
-    const senha = document.getElementById('password').value;
+            const email = document.getElementById('email').value;
+            const senha = document.getElementById('password').value;
 
-    const usuario = usuarios.find(u => u.email === email && u.senha === senha);
+            console.log('📧 Email:', email);
+            console.log('🔑 Senha fornecida:', senha ? 'Sim' : 'Não');
 
-    if (usuario) {
-        usuarioLogado = usuario;
-        mostrarCarregamento(true);
-        iniciarDashboard();
+            const usuario = usuarios.find(u => u.email === email && u.senha === senha);
+
+            if (usuario) {
+                console.log('✅ Login válido para:', usuario.nome);
+                usuarioLogado = usuario;
+                mostrarCarregamento(true);
+                iniciarDashboard();
+            } else {
+                console.log('❌ Login inválido');
+                document.getElementById('loginError').style.display = 'block';
+            }
+        });
     } else {
-        document.getElementById('loginError').style.display = 'block';
+        console.error('❌ Formulário de login não encontrado!');
     }
 });
 
 // Função para mostrar/ocultar loading
 function mostrarCarregamento(mostrar) {
+    console.log('⏳ Carregamento:', mostrar ? 'Iniciado' : 'Finalizado');
     const loadingElement = document.getElementById('loadingMessage');
     if (loadingElement) {
         loadingElement.style.display = mostrar ? 'block' : 'none';
@@ -42,9 +60,14 @@ function mostrarCarregamento(mostrar) {
 
 // Função para inicializar o dashboard
 async function iniciarDashboard() {
+    console.log('🚀 Iniciando dashboard...');
+    
     try {
+        console.log('📥 Tentando carregar dados do Excel...');
         await carregarDadosExcel();
+        console.log('✅ Dados carregados com sucesso');
         
+        console.log('🎨 Configurando interface...');
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('dashboard').style.display = 'block';
         
@@ -52,70 +75,108 @@ async function iniciarDashboard() {
         document.getElementById('userName').textContent = 'José Paulo';
         document.getElementById('userNameHeader').textContent = 'José Paulo';
 
+        console.log('📊 Processando dados...');
         carregarDados();
+        
+        console.log('🔧 Configurando filtros...');
         configurarFiltros();
+        
         mostrarCarregamento(false);
+        console.log('🎉 Dashboard inicializado com sucesso!');
+        
     } catch (error) {
-        console.error('Erro ao carregar dados:', error);
-        alert('Erro ao carregar os dados. Tente novamente.');
+        console.error('💥 ERRO ao inicializar dashboard:', error);
+        console.error('💥 Stack trace:', error.stack);
+        alert(`Erro detalhado: ${error.message}`);
         mostrarCarregamento(false);
     }
 }
 
 // Função para configurar filtros
 function configurarFiltros() {
-    // Configurar filtro de período
-    const filtroMes = document.getElementById('filtroMes');
-    const filtroAno = document.getElementById('filtroAno');
-    
-    // Preencher anos disponíveis
-    const anosDisponiveis = [...new Set(todosDados.map(item => {
-        const data = new Date(item.dataOriginal);
-        return data.getFullYear();
-    }))].sort((a, b) => b - a);
-    
-    filtroAno.innerHTML = '<option value="">Todos os anos</option>';
-    anosDisponiveis.forEach(ano => {
-        filtroAno.innerHTML += `<option value="${ano}">${ano}</option>`;
-    });
-    
-    // Event listeners para filtros
-    filtroMes.addEventListener('change', aplicarFiltros);
-    filtroAno.addEventListener('change', aplicarFiltros);
-    document.getElementById('btnLimparFiltros').addEventListener('click', limparFiltros);
+    try {
+        console.log('🔧 Configurando filtros...');
+        
+        const filtroMes = document.getElementById('filtroMes');
+        const filtroAno = document.getElementById('filtroAno');
+        
+        if (!filtroMes || !filtroAno) {
+            console.error('❌ Elementos de filtro não encontrados');
+            return;
+        }
+        
+        // Preencher anos disponíveis
+        const anosDisponiveis = [...new Set(todosDados.map(item => {
+            const data = new Date(item.dataOriginal);
+            return data.getFullYear();
+        }))].sort((a, b) => b - a);
+        
+        console.log('📅 Anos disponíveis:', anosDisponiveis);
+        
+        filtroAno.innerHTML = '<option value="">Todos os anos</option>';
+        anosDisponiveis.forEach(ano => {
+            filtroAno.innerHTML += `<option value="${ano}">${ano}</option>`;
+        });
+        
+        // Event listeners para filtros
+        filtroMes.addEventListener('change', aplicarFiltros);
+        filtroAno.addEventListener('change', aplicarFiltros);
+        
+        const btnLimpar = document.getElementById('btnLimparFiltros');
+        if (btnLimpar) {
+            btnLimpar.addEventListener('click', limparFiltros);
+        }
+        
+        console.log('✅ Filtros configurados');
+        
+    } catch (error) {
+        console.error('💥 Erro ao configurar filtros:', error);
+    }
 }
 
 // Função para aplicar filtros
 function aplicarFiltros() {
-    const mes = document.getElementById('filtroMes').value;
-    const ano = document.getElementById('filtroAno').value;
-    
-    let dadosFiltrados = [...todosDados];
-    
-    if (mes || ano) {
-        dadosFiltrados = todosDados.filter(item => {
-            const data = new Date(item.dataOriginal);
-            const itemMes = data.getMonth() + 1;
-            const itemAno = data.getFullYear();
-            
-            const mesMatch = !mes || itemMes == mes;
-            const anoMatch = !ano || itemAno == ano;
-            
-            return mesMatch && anoMatch;
-        });
+    try {
+        const mes = document.getElementById('filtroMes').value;
+        const ano = document.getElementById('filtroAno').value;
+        
+        console.log('🔍 Aplicando filtros - Mês:', mes, 'Ano:', ano);
+        
+        let dadosFiltrados = [...todosDados];
+        
+        if (mes || ano) {
+            dadosFiltrados = todosDados.filter(item => {
+                const data = new Date(item.dataOriginal);
+                const itemMes = data.getMonth() + 1;
+                const itemAno = data.getFullYear();
+                
+                const mesMatch = !mes || itemMes == mes;
+                const anoMatch = !ano || itemAno == ano;
+                
+                return mesMatch && anoMatch;
+            });
+        }
+        
+        console.log('📊 Registros filtrados:', dadosFiltrados.length);
+        
+        renderizarTabela(dadosFiltrados);
+        renderizarGrafico(dadosFiltrados);
+        atualizarEstatisticas(dadosFiltrados);
+        
+        // Atualizar contador de registros filtrados
+        const registrosFiltrados = document.getElementById('registrosFiltrados');
+        if (registrosFiltrados) {
+            registrosFiltrados.textContent = `${dadosFiltrados.length} de ${todosDados.length} registros`;
+        }
+        
+    } catch (error) {
+        console.error('💥 Erro ao aplicar filtros:', error);
     }
-    
-    renderizarTabela(dadosFiltrados);
-    renderizarGrafico(dadosFiltrados);
-    atualizarEstatisticas(dadosFiltrados);
-    
-    // Atualizar contador de registros filtrados
-    document.getElementById('registrosFiltrados').textContent = 
-        `${dadosFiltrados.length} de ${todosDados.length} registros`;
 }
 
 // Função para limpar filtros
 function limparFiltros() {
+    console.log('🗑️ Limpando filtros...');
     document.getElementById('filtroMes').value = '';
     document.getElementById('filtroAno').value = '';
     aplicarFiltros();
@@ -123,6 +184,7 @@ function limparFiltros() {
 
 // Função para sair
 function logout() {
+    console.log('👋 Logout realizado');
     usuarioLogado = null;
     dadosExcel = null;
     todosDados = [];
@@ -137,6 +199,7 @@ function logout() {
 
 // Função para atualizar dados
 async function atualizarDados() {
+    console.log('🔄 Atualizando dados...');
     mostrarCarregamento(true);
     try {
         await carregarDadosExcel();
@@ -144,7 +207,7 @@ async function atualizarDados() {
         configurarFiltros();
         alert('Dados atualizados com sucesso!');
     } catch (error) {
-        console.error('Erro ao atualizar dados:', error);
+        console.error('💥 Erro ao atualizar dados:', error);
         alert('Erro ao atualizar os dados. Tente novamente.');
     }
     mostrarCarregamento(false);
@@ -153,12 +216,15 @@ async function atualizarDados() {
 // Função para carregar dados do Excel
 async function carregarDadosExcel() {
     try {
-        console.log('Carregando dados do Excel...');
+        console.log('📥 Iniciando carregamento do Excel...');
+        console.log('🔗 URL:', EXCEL_URL);
         
         // Adicionar timestamp para forçar atualização
         const timestamp = new Date().getTime();
         const urlComCache = `${EXCEL_URL}?t=${timestamp}`;
+        console.log('🔗 URL com cache busting:', urlComCache);
         
+        console.log('🌐 Fazendo requisição...');
         const response = await fetch(urlComCache, {
             method: 'GET',
             cache: 'no-cache',
@@ -168,17 +234,30 @@ async function carregarDadosExcel() {
             }
         });
         
+        console.log('📡 Response status:', response.status);
+        console.log('📡 Response ok:', response.ok);
+        
         if (!response.ok) {
-            throw new Error(`Erro HTTP: ${response.status}`);
+            throw new Error(`Erro HTTP: ${response.status} - ${response.statusText}`);
         }
         
+        console.log('📦 Convertendo para ArrayBuffer...');
         const arrayBuffer = await response.arrayBuffer();
+        console.log('📦 Tamanho do arquivo:', arrayBuffer.byteLength, 'bytes');
+        
+        if (arrayBuffer.byteLength === 0) {
+            throw new Error('Arquivo Excel está vazio');
+        }
+        
+        console.log('📖 Lendo arquivo Excel...');
         const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        console.log('📋 Abas encontradas:', workbook.SheetNames);
         
         dadosExcel = {};
         
         // Processar todas as abas
         workbook.SheetNames.forEach(sheetName => {
+            console.log(`📄 Processando aba: ${sheetName}`);
             const worksheet = workbook.Sheets[sheetName];
             const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
                 header: 1,
@@ -186,15 +265,21 @@ async function carregarDadosExcel() {
                 raw: false
             });
             
+            console.log(`📊 Linhas na aba ${sheetName}:`, jsonData.length);
+            
             if (jsonData.length > 1) {
                 dadosExcel[sheetName] = jsonData;
+                console.log(`✅ Aba ${sheetName} processada com sucesso`);
             }
         });
         
-        console.log('Dados carregados com sucesso:', dadosExcel);
+        console.log('✅ Dados do Excel carregados com sucesso');
         
     } catch (error) {
-        console.error('Erro ao carregar arquivo Excel:', error);
+        console.error('💥 ERRO ao carregar arquivo Excel:', error);
+        console.error('💥 Tipo do erro:', typeof error);
+        console.error('💥 Mensagem:', error.message);
+        console.error('💥 Stack:', error.stack);
         throw error;
     }
 }
@@ -232,17 +317,24 @@ function calcularHorasTrabalhadas(entrada1, saida1, entrada2, saida2) {
 
 // Função para processar dados baseado na estrutura real da planilha
 function processarDadosUsuario() {
+    console.log('📊 Iniciando processamento dos dados...');
     const dadosUsuario = [];
     
-    if (!dadosExcel) return dadosUsuario;
+    if (!dadosExcel) {
+        console.log('❌ Dados do Excel não disponíveis');
+        return dadosUsuario;
+    }
     
     // Processar cada aba
     Object.keys(dadosExcel).forEach(sheetName => {
         const dados = dadosExcel[sheetName];
         
-        if (!dados || dados.length < 2) return;
+        if (!dados || dados.length < 2) {
+            console.log(`⚠️ Aba ${sheetName} vazia ou inválida`);
+            return;
+        }
         
-        console.log(`Processando aba: ${sheetName}`);
+        console.log(`📄 Processando aba: ${sheetName} (${dados.length} linhas)`);
         
         // Processar todas as linhas de dados
         for (let i = 1; i < dados.length; i++) {
@@ -293,7 +385,7 @@ function processarDadosUsuario() {
     // Ordenar por data (mais recente primeiro)
     dadosUsuario.sort((a, b) => new Date(b.dataOriginal) - new Date(a.dataOriginal));
     
-    console.log(`Total de registros processados: ${dadosUsuario.length}`);
+    console.log(`✅ Total de registros processados: ${dadosUsuario.length}`);
     return dadosUsuario;
 }
 
@@ -359,7 +451,6 @@ function calcularHorasExtras(expediente, totalMinutosTrabalhados, dia) {
     // Se for fim de semana (sábado/domingo), TUDO é HE 100%
     if (isFimDeSemana(dia)) {
         he100 = totalMinutosTrabalhados / 60;
-        console.log(`Fim de semana detectado (${dia}): ${totalMinutosTrabalhados} min = ${he100.toFixed(2)}h HE 100%`);
         return { he50, he100 };
     }
 
@@ -405,10 +496,16 @@ function minutesToTime(minutes) {
 
 // Função para carregar os dados e renderizar
 function carregarDados() {
+    console.log('📊 Carregando dados para renderização...');
     todosDados = processarDadosUsuario();
     
+    console.log('🎨 Renderizando tabela...');
     renderizarTabela(todosDados);
+    
+    console.log('📈 Renderizando gráfico...');
     renderizarGrafico(todosDados);
+    
+    console.log('📊 Atualizando estatísticas...');
     atualizarEstatisticas(todosDados);
 }
 
@@ -419,6 +516,13 @@ function atualizarEstatisticas(dados) {
     const totalHE100 = dados.reduce((sum, row) => sum + row.he100, 0);
     const totalHorasExtras = totalHE50 + totalHE100;
     
+    console.log('📊 Estatísticas:', {
+        registros: totalRegistros,
+        he50: totalHE50.toFixed(2),
+        he100: totalHE100.toFixed(2),
+        total: totalHorasExtras.toFixed(2)
+    });
+    
     document.getElementById('totalRegistros').textContent = totalRegistros;
     document.getElementById('totalHE50').textContent = `${totalHE50.toFixed(2)}h`;
     document.getElementById('totalHE100').textContent = `${totalHE100.toFixed(2)}h`;
@@ -428,6 +532,11 @@ function atualizarEstatisticas(dados) {
 // Função para renderizar a tabela
 function renderizarTabela(dados) {
     const tbody = document.getElementById('tableBody');
+    if (!tbody) {
+        console.error('❌ Elemento tableBody não encontrado');
+        return;
+    }
+    
     tbody.innerHTML = '';
 
     if (dados.length === 0) {
@@ -465,22 +574,30 @@ function renderizarTabela(dados) {
         `;
         tbody.appendChild(tr);
     });
+    
+    console.log(`✅ Tabela renderizada com ${dados.length} registros`);
 }
 
 // Função para renderizar o gráfico
 function renderizarGrafico(dados) {
-    const ctx = document.getElementById('heChart').getContext('2d');
+    const ctx = document.getElementById('heChart');
+    if (!ctx) {
+        console.error('❌ Elemento heChart não encontrado');
+        return;
+    }
     
     if (graficoAtual) {
         graficoAtual.destroy();
     }
     
     if (dados.length === 0) {
+        console.log('⚠️ Nenhum dado para o gráfico');
         return;
     }
     
     // Filtrar apenas registros com horas extras para o gráfico
     const dadosComHE = dados.filter(row => row.he50 > 0 || row.he100 > 0);
+    console.log(`📈 Registros com HE para gráfico: ${dadosComHE.length}`);
     
     // Pegar últimos 20 registros com HE
     const dadosGrafico = dadosComHE.slice(0, 20).reverse();
@@ -489,72 +606,79 @@ function renderizarGrafico(dados) {
     const he50Data = dadosGrafico.map(row => row.he50);
     const he100Data = dadosGrafico.map(row => row.he100);
 
-    graficoAtual = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels,
-            datasets: [
-                {
-                    label: 'HE 50%',
-                    data: he50Data,
-                    backgroundColor: 'rgba(46, 125, 50, 0.8)',
-                    borderColor: 'rgba(46, 125, 50, 1)',
-                    borderWidth: 2
-                },
-                {
-                    label: 'HE 100%',
-                    data: he100Data,
-                    backgroundColor: 'rgba(76, 175, 80, 0.8)',
-                    borderColor: 'rgba(76, 175, 80, 1)',
-                    borderWidth: 2
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'top',
-                    labels: {
-                        font: {
-                            size: 14,
-                            weight: 'bold'
-                        }
+    try {
+        graficoAtual = new Chart(ctx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'HE 50%',
+                        data: he50Data,
+                        backgroundColor: 'rgba(46, 125, 50, 0.8)',
+                        borderColor: 'rgba(46, 125, 50, 1)',
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'HE 100%',
+                        data: he100Data,
+                        backgroundColor: 'rgba(76, 175, 80, 0.8)',
+                        borderColor: 'rgba(76, 175, 80, 1)',
+                        borderWidth: 2
                     }
-                },
-                title: {
-                    display: true,
-                    text: 'Horas Extras - José Paulo - Últimos 20 Registros',
-                    font: {
-                        size: 16,
-                        weight: 'bold'
-                    }
-                }
+                ]
             },
-            scales: {
-                y: {
-                    beginAtZero: true,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        }
+                    },
                     title: {
                         display: true,
-                        text: 'Horas',
+                        text: 'Horas Extras - José Paulo - Últimos 20 Registros',
                         font: {
-                            size: 14,
+                            size: 16,
                             weight: 'bold'
                         }
                     }
                 },
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Data',
-                        font: {
-                            size: 14,
-                            weight: 'bold'
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Horas',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Data',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
                         }
                     }
                 }
             }
-        }
-    });
+        });
+        
+        console.log('✅ Gráfico renderizado com sucesso');
+        
+    } catch (error) {
+        console.error('💥 Erro ao renderizar gráfico:', error);
+    }
 }
