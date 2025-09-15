@@ -1,7 +1,7 @@
 // URL do arquivo Excel no GitHub
 const EXCEL_URL = 'https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/refs/heads/main/base_dados.xlsx';
 
-// Usuários e senhas (todos mostram dados do José Paulo)
+// Usuários e senhas (todos veem os mesmos dados, mas com identificação própria)
 const usuarios = [
     { nome: 'José Paulo', email: 'josepaulojunior@live.com', senha: 'efaro2024' },
     { nome: 'Deise Borsato', email: 'deise.silva@efaro.com', senha: 'efaro2024' },
@@ -25,6 +25,7 @@ document.getElementById('loginForm').addEventListener('submit', function (event)
 
     if (usuario) {
         usuarioLogado = usuario;
+        console.log(`🔐 Login realizado: ${usuario.nome} (${usuario.email})`);
         mostrarCarregamento(true);
         iniciarDashboard();
     } else {
@@ -48,8 +49,11 @@ async function iniciarDashboard() {
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('dashboard').style.display = 'block';
         
-        document.getElementById('userName').textContent = 'José Paulo';
-        document.getElementById('userNameHeader').textContent = 'José Paulo';
+        // CORRIGIDO: Usar o nome do usuário logado dinamicamente
+        document.getElementById('userName').textContent = usuarioLogado.nome;
+        document.getElementById('userNameHeader').textContent = usuarioLogado.nome;
+        
+        console.log(`👋 Dashboard iniciado para: ${usuarioLogado.nome}`);
 
         carregarDados();
         configurarFiltros();
@@ -166,12 +170,10 @@ function timeToMinutes(time) {
         // Validar se são números válidos
         if (!isNaN(hours) && !isNaN(minutes) && hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
             const totalMinutos = hours * 60 + minutes;
-            console.log(`⏰ "${timeStr}" = ${totalMinutos} minutos`);
             return totalMinutos;
         }
     }
     
-    console.log(`⚠️ Hora inválida: "${time}"`);
     return 0;
 }
 
@@ -187,9 +189,6 @@ function minutesToTime(minutes) {
 
 // Função DEFINITIVA para calcular horas trabalhadas
 function calcularHorasTrabalhadas(entrada1, saida1, entrada2, saida2) {
-    console.log(`\n🕐 CALCULANDO HORAS:`);
-    console.log(`🕐 E1: "${entrada1}" | S1: "${saida1}" | E2: "${entrada2}" | S2: "${saida2}"`);
-    
     let totalMinutos = 0;
     
     // Período 1 (manhã ou período único)
@@ -199,7 +198,6 @@ function calcularHorasTrabalhadas(entrada1, saida1, entrada2, saida2) {
     if (entrada1Min > 0 && saida1Min > 0 && saida1Min > entrada1Min) {
         const periodo1 = saida1Min - entrada1Min;
         totalMinutos += periodo1;
-        console.log(`🕐 Período 1: ${periodo1} minutos (${minutesToTime(periodo1)})`);
     }
     
     // Período 2 (tarde - só se existir)
@@ -209,67 +207,51 @@ function calcularHorasTrabalhadas(entrada1, saida1, entrada2, saida2) {
     if (entrada2Min > 0 && saida2Min > 0 && saida2Min > entrada2Min) {
         const periodo2 = saida2Min - entrada2Min;
         totalMinutos += periodo2;
-        console.log(`🕐 Período 2: ${periodo2} minutos (${minutesToTime(periodo2)})`);
     }
     
-    console.log(`🕐 TOTAL TRABALHADO: ${totalMinutos} minutos = ${minutesToTime(totalMinutos)}`);
     return totalMinutos;
 }
 
 // Função CORRIGIDA para calcular horas extras
 function calcularHorasExtras(expediente, totalMinutosTrabalhados, dia) {
-    console.log(`\n📊 CALCULANDO HORAS EXTRAS:`);
-    console.log(`📊 Dia: "${dia}"`);
-    console.log(`📊 Total trabalhado: ${totalMinutosTrabalhados} min = ${minutesToTime(totalMinutosTrabalhados)}`);
-    console.log(`📊 Expediente: "${expediente}"`);
-    
     let he50 = 0;
     let he100 = 0;
     
     // REGRA 1: Se for fim de semana, TUDO é HE 100%
     if (isFimDeSemana(dia)) {
         he100 = totalMinutosTrabalhados / 60;
-        console.log(`🎯 FIM DE SEMANA! TUDO vira HE 100%: ${he100.toFixed(2)}h`);
         return { he50, he100 };
     }
     
     // REGRA 2: Para dias úteis, calcular baseado no expediente
     const expedienteMinutos = timeToMinutes(expediente);
-    console.log(`📊 Expediente em minutos: ${expedienteMinutos}`);
     
     // Se expediente for 0 ou inválido, tratar como fim de semana
     if (expedienteMinutos === 0) {
         he100 = totalMinutosTrabalhados / 60;
-        console.log(`📊 EXPEDIENTE ZERO! TUDO vira HE 100%: ${he100.toFixed(2)}h`);
         return { he50, he100 };
     }
     
     // Calcular saldo de horas extras (só conta se trabalhou MAIS que o expediente)
     const saldoMinutos = totalMinutosTrabalhados - expedienteMinutos;
-    console.log(`📊 Saldo: ${saldoMinutos} minutos`);
     
     if (saldoMinutos > 0) {
         // Primeiras 2 horas extras = HE 50%
         if (saldoMinutos <= 120) { // 120 minutos = 2 horas
             he50 = saldoMinutos / 60;
-            console.log(`📊 Até 2h extras: HE 50% = ${he50.toFixed(2)}h`);
         } else {
             // Primeiras 2h = HE 50%, resto = HE 100%
             he50 = 120 / 60; // Exatamente 2 horas
             he100 = (saldoMinutos - 120) / 60;
-            console.log(`📊 Mais de 2h extras: HE 50% = ${he50.toFixed(2)}h | HE 100% = ${he100.toFixed(2)}h`);
         }
-    } else {
-        console.log(`📊 SEM HORAS EXTRAS (trabalhou ${Math.abs(saldoMinutos)} min a menos que o expediente)`);
     }
     
-    console.log(`📊 RESULTADO FINAL: HE50=${he50.toFixed(2)}h | HE100=${he100.toFixed(2)}h`);
     return { he50, he100 };
 }
 
-// Função DEFINITIVA para processar dados (SEM PERDER REGISTROS)
+// Função para processar dados (MESMA PLANILHA PARA TODOS)
 function processarDadosUsuario() {
-    console.log('\n🚀 INICIANDO PROCESSAMENTO DOS DADOS...');
+    console.log(`\n🚀 PROCESSANDO DADOS PARA: ${usuarioLogado.nome}`);
     const dadosUsuario = [];
     
     if (!dadosExcel) {
@@ -277,7 +259,7 @@ function processarDadosUsuario() {
         return dadosUsuario;
     }
     
-    // Processar cada aba
+    // CORRIGIDO: Processar TODAS as abas da planilha (mesmos dados para todos)
     Object.keys(dadosExcel).forEach(sheetName => {
         const dados = dadosExcel[sheetName];
         
@@ -301,10 +283,7 @@ function processarDadosUsuario() {
             const saida2 = linha[5] || '';
             const expediente = linha[6] || '08:48';
             
-            console.log(`\n📝 Linha ${i}: Data="${data}", Dia="${dia}"`);
-            console.log(`📝 Horários: E1="${entrada1}", S1="${saida1}", E2="${entrada2}", S2="${saida2}", Exp="${expediente}"`);
-            
-            // Verificar se tem uma data válida (CRITÉRIO MAIS FLEXÍVEL)
+            // Verificar se tem uma data válida
             if (data && data !== '00:00:00' && data !== '' && data !== '0' && data !== 0) {
                 
                 // Calcular horas trabalhadas
@@ -331,9 +310,6 @@ function processarDadosUsuario() {
                 };
                 
                 dadosUsuario.push(registro);
-                console.log(`✅ REGISTRO ADICIONADO: ${data} - ${dia} - Total: ${totalFormatado} - HE50: ${horasExtras.he50.toFixed(2)}h - HE100: ${horasExtras.he100.toFixed(2)}h`);
-            } else {
-                console.log(`⚠️ Linha ${i} ignorada - data inválida: "${data}"`);
             }
         }
     });
@@ -341,20 +317,7 @@ function processarDadosUsuario() {
     // Ordenar por data (mais recente primeiro)
     dadosUsuario.sort((a, b) => new Date(b.dataOriginal) - new Date(a.dataOriginal));
     
-    console.log(`\n🎉 PROCESSAMENTO CONCLUÍDO!`);
-    console.log(`🎉 TOTAL DE REGISTROS PROCESSADOS: ${dadosUsuario.length}`);
-    
-    // Mostrar resumo das HE
-    const totalHE50 = dadosUsuario.reduce((sum, row) => sum + (row.he50 || 0), 0);
-    const totalHE100 = dadosUsuario.reduce((sum, row) => sum + (row.he100 || 0), 0);
-    console.log(`🎉 TOTAL HE 50%: ${totalHE50.toFixed(2)}h`);
-    console.log(`🎉 TOTAL HE 100%: ${totalHE100.toFixed(2)}h`);
-    
-    // Mostrar todos os registros processados
-    console.log(`\n📋 LISTA DE TODOS OS REGISTROS:`);
-    dadosUsuario.forEach((reg, index) => {
-        console.log(`📋 ${index + 1}. ${reg.data} - ${reg.dia} - ${reg.total} - HE50: ${reg.he50.toFixed(2)}h - HE100: ${reg.he100.toFixed(2)}h`);
-    });
+    console.log(`✅ ${dadosUsuario.length} registros processados para ${usuarioLogado.nome}`);
     
     return dadosUsuario;
 }
@@ -413,6 +376,59 @@ function formatarHora(hora) {
     }
     
     return String(hora);
+}
+
+// Função para gerar análise detalhada das horas extras
+function gerarAnaliseHorasExtras(dados) {
+    // Análise HE 50%
+    const registrosHE50 = dados.filter(row => row.he50 > 0);
+    const totalHE50 = dados.reduce((sum, row) => sum + (row.he50 || 0), 0);
+    const mediaHE50 = registrosHE50.length > 0 ? totalHE50 / registrosHE50.length : 0;
+    
+    // Análise HE 100%
+    const registrosHE100 = dados.filter(row => row.he100 > 0);
+    const totalHE100 = dados.reduce((sum, row) => sum + (row.he100 || 0), 0);
+    const mediaHE100 = registrosHE100.length > 0 ? totalHE100 / registrosHE100.length : 0;
+    
+    // Separar HE 100% por tipo
+    const he100FimSemana = dados.filter(row => row.he100 > 0 && isFimDeSemana(row.dia));
+    const he100DiasUteis = dados.filter(row => row.he100 > 0 && !isFimDeSemana(row.dia));
+    
+    const totalHE100FimSemana = he100FimSemana.reduce((sum, row) => sum + row.he100, 0);
+    const totalHE100DiasUteis = he100DiasUteis.reduce((sum, row) => sum + row.he100, 0);
+    
+    // Gerar texto da análise HE 50%
+    const analiseHE50 = `
+        • <strong>Total de registros:</strong> ${registrosHE50.length} dias<br>
+        • <strong>Total de horas:</strong> ${totalHE50.toFixed(2)}h<br>
+        • <strong>Média por dia:</strong> ${mediaHE50.toFixed(2)}h<br>
+        • <strong>Maior registro:</strong> ${registrosHE50.length > 0 ? Math.max(...registrosHE50.map(r => r.he50)).toFixed(2) : '0.00'}h<br>
+        • <strong>Observação:</strong> Primeiras 2 horas extras em dias úteis
+    `;
+    
+    // Gerar texto da análise HE 100%
+    const analiseHE100 = `
+        • <strong>Total de registros:</strong> ${registrosHE100.length} dias<br>
+        • <strong>Total de horas:</strong> ${totalHE100.toFixed(2)}h<br>
+        • <strong>Média por dia:</strong> ${mediaHE100.toFixed(2)}h<br>
+        • <strong>Fins de semana:</strong> ${he100FimSemana.length} dias (${totalHE100FimSemana.toFixed(2)}h)<br>
+        • <strong>Dias úteis (>2h):</strong> ${he100DiasUteis.length} dias (${totalHE100DiasUteis.toFixed(2)}h)<br>
+        • <strong>Maior registro:</strong> ${registrosHE100.length > 0 ? Math.max(...registrosHE100.map(r => r.he100)).toFixed(2) : '0.00'}h
+    `;
+    
+    // Atualizar elementos HTML
+    const elementoHE50 = document.getElementById('analiseHE50');
+    const elementoHE100 = document.getElementById('analiseHE100');
+    
+    if (elementoHE50) {
+        elementoHE50.innerHTML = analiseHE50;
+    }
+    
+    if (elementoHE100) {
+        elementoHE100.innerHTML = analiseHE100;
+    }
+    
+    console.log(`📊 Análise detalhada das HE atualizada para ${usuarioLogado.nome}`);
 }
 
 // Função para configurar filtros
@@ -496,6 +512,7 @@ function limparFiltros() {
 }
 
 function logout() {
+    console.log(`👋 Logout: ${usuarioLogado?.nome || 'Usuário desconhecido'}`);
     usuarioLogado = null;
     dadosExcel = null;
     todosDados = [];
@@ -523,7 +540,7 @@ async function atualizarDados() {
 }
 
 function carregarDados() {
-    console.log('🔄 Carregando dados...');
+    console.log(`🔄 Carregando dados para: ${usuarioLogado.nome}`);
     todosDados = processarDadosUsuario();
     renderizarTabela(todosDados);
     renderizarGrafico(todosDados);
@@ -537,7 +554,7 @@ function atualizarEstatisticas(dados) {
     const totalHE100 = dados.reduce((sum, row) => sum + (row.he100 || 0), 0);
     const totalHorasExtras = totalHE50 + totalHE100;
     
-    console.log('\n📊 ATUALIZANDO ESTATÍSTICAS:');
+    console.log(`\n📊 ESTATÍSTICAS PARA ${usuarioLogado.nome}:`);
     console.log(`📊 Total de registros: ${totalRegistros}`);
     console.log(`📊 Total HE 50%: ${totalHE50.toFixed(2)}h`);
     console.log(`📊 Total HE 100%: ${totalHE100.toFixed(2)}h`);
@@ -551,6 +568,9 @@ function atualizarEstatisticas(dados) {
     if (totalHorasExtrasElement) {
         totalHorasExtrasElement.textContent = `${totalHorasExtras.toFixed(2)}h`;
     }
+    
+    // Gerar análise detalhada
+    gerarAnaliseHorasExtras(dados);
 }
 
 function renderizarTabela(dados) {
@@ -564,12 +584,12 @@ function renderizarTabela(dados) {
 
     if (dados.length === 0) {
         const tr = document.createElement('tr');
-        tr.innerHTML = '<td colspan="10" style="text-align: center; padding: 20px; color: #666;">Nenhum dado encontrado</td>';
+        tr.innerHTML = `<td colspan="10" style="text-align: center; padding: 20px; color: #666;">Nenhum dado encontrado para ${usuarioLogado.nome}</td>`;
         tbody.appendChild(tr);
         return;
     }
 
-    console.log(`📋 Renderizando tabela com ${dados.length} registros`);
+    console.log(`📋 Renderizando tabela com ${dados.length} registros para ${usuarioLogado.nome}`);
 
     dados.forEach((row, index) => {
         const tr = document.createElement('tr');
@@ -584,7 +604,6 @@ function renderizarTabela(dados) {
         if (isFimDeSemana(row.dia)) {
             tr.style.backgroundColor = '#e3f2fd';
             tr.style.fontWeight = 'bold';
-            console.log(`🎯 Destacando fim de semana: ${row.data} - ${row.dia}`);
         }
         
         tr.innerHTML = `
@@ -624,7 +643,7 @@ function renderizarGrafico(dados) {
     // Filtrar apenas registros com horas extras
     const dadosComHE = dados.filter(row => (row.he50 && row.he50 > 0) || (row.he100 && row.he100 > 0));
     
-    console.log(`📊 Renderizando gráfico com ${dadosComHE.length} registros com HE`);
+    console.log(`📊 Renderizando gráfico com ${dadosComHE.length} registros com HE para ${usuarioLogado.nome}`);
     
     // Pegar últimos 20 registros com HE
     const dadosGrafico = dadosComHE.slice(0, 20).reverse();
@@ -639,7 +658,7 @@ function renderizarGrafico(dados) {
             data: {
                 labels,
                 datasets: [
-                                     {
+                    {
                         label: 'HE 50%',
                         data: he50Data,
                         backgroundColor: 'rgba(46, 125, 50, 0.8)',
@@ -670,7 +689,7 @@ function renderizarGrafico(dados) {
                     },
                     title: {
                         display: true,
-                        text: 'Horas Extras - José Paulo - Últimos 20 Registros',
+                        text: `Horas Extras - ${usuarioLogado.nome} - Últimos 20 Registros`,
                         font: {
                             size: 16,
                             weight: 'bold'
