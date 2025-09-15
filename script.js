@@ -4,7 +4,7 @@ const EXCEL_URL = 'https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/r
 // Usuários e senhas (todos veem os mesmos dados, mas com identificação própria)
 const usuarios = [
     { nome: 'José Paulo', email: 'josepaulojunior@live.com', senha: 'efaro2024' },
-    { nome: 'Deise Borsato', email: 'deise.silva@efaro.com', senha: 'efaro2024' },
+    { nome: 'Deise Borsato', email: 'deise.silva@efaro.com.br', senha: 'efaro2024' },
     { nome: 'Everton Henrique', email: 'everton@efaro.com.br', senha: 'efaro2024' },
     { nome: 'Matheus Rodas', email: 'matheus@efaro.com.br', senha: 'efaro2024' }
 ];
@@ -863,3 +863,4 @@ function renderizarGrafico(dados) {
         console.error('❌ Erro ao renderizar gráfico:', error);
     }
 }
+
