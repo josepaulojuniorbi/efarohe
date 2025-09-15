@@ -1,14 +1,10 @@
-// URLs do arquivo Excel (com fallbacks para CORS)
-const EXCEL_URLS = [
-    'https://api.allorigins.win/raw?url=https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/refs/heads/main/base_dados.xlsx',
-    'https://cors-anywhere.herokuapp.com/https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/refs/heads/main/base_dados.xlsx',
-    'https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/refs/heads/main/base_dados.xlsx'
-];
+// URL do arquivo Excel no GitHub
+const EXCEL_URL = 'https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/refs/heads/main/base_dados.xlsx';
 
 // Usuários e senhas (todos mostram dados do José Paulo)
 const usuarios = [
     { nome: 'José Paulo', email: 'josepaulojunior@live.com', senha: 'efaro2024' },
-    { nome: 'Deise Borsato', email: 'deise.silva@efaro.com.br', senha: 'efaro2024' },
+    { nome: 'Deise Borsato', email: 'deise.silva@efaro.com', senha: 'efaro2024' },
     { nome: 'Everton Henrique', email: 'everton@efaro.com.br', senha: 'efaro2024' },
     { nome: 'Matheus Rodas', email: 'matheus@efaro.com.br', senha: 'efaro2024' }
 ];
@@ -18,33 +14,21 @@ let dadosExcel = null;
 let graficoAtual = null;
 let todosDados = [];
 
-console.log('🚀 Script carregado - versão com múltiplos proxies');
-
 // Função de login
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('📄 DOM carregado');
-    
-    const loginForm = document.getElementById('loginForm');
-    if (loginForm) {
-        loginForm.addEventListener('submit', function (event) {
-            event.preventDefault();
-            console.log('🔐 Tentativa de login iniciada');
+document.getElementById('loginForm').addEventListener('submit', function (event) {
+    event.preventDefault();
 
-            const email = document.getElementById('email').value;
-            const senha = document.getElementById('password').value;
+    const email = document.getElementById('email').value;
+    const senha = document.getElementById('password').value;
 
-            const usuario = usuarios.find(u => u.email === email && u.senha === senha);
+    const usuario = usuarios.find(u => u.email === email && u.senha === senha);
 
-            if (usuario) {
-                console.log('✅ Login válido para:', usuario.nome);
-                usuarioLogado = usuario;
-                mostrarCarregamento(true);
-                iniciarDashboard();
-            } else {
-                console.log('❌ Login inválido');
-                document.getElementById('loginError').style.display = 'block';
-            }
-        });
+    if (usuario) {
+        usuarioLogado = usuario;
+        mostrarCarregamento(true);
+        iniciarDashboard();
+    } else {
+        document.getElementById('loginError').style.display = 'block';
     }
 });
 
@@ -73,81 +57,65 @@ async function iniciarDashboard() {
         mostrarCarregamento(false);
         
     } catch (error) {
-        console.error('💥 ERRO ao inicializar dashboard:', error);
-        alert(`Erro: ${error.message}`);
+        console.error('Erro ao carregar dados:', error);
+        alert('Erro ao carregar os dados. Tente novamente.');
         mostrarCarregamento(false);
     }
 }
 
-// Função para carregar dados do Excel com múltiplas tentativas
+// Função para carregar dados do Excel (SEM CORS)
 async function carregarDadosExcel() {
-    let ultimoErro = null;
-    
-    for (let i = 0; i < EXCEL_URLS.length; i++) {
-        const url = EXCEL_URLS[i];
-        console.log(`📥 Tentativa ${i + 1}: ${url}`);
+    try {
+        console.log('Carregando dados do Excel...');
         
-        try {
-            const timestamp = new Date().getTime();
-            const urlComCache = `${url}${url.includes('?') ? '&' : '?'}t=${timestamp}`;
+        // Usar XMLHttpRequest para evitar CORS
+        const response = await new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', EXCEL_URL, true);
+            xhr.responseType = 'arraybuffer';
             
-            const response = await fetch(urlComCache, {
-                method: 'GET',
-                cache: 'no-cache',
-                headers: {
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache'
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    resolve(xhr.response);
+                } else {
+                    reject(new Error(`HTTP ${xhr.status}`));
                 }
+            };
+            
+            xhr.onerror = function() {
+                reject(new Error('Erro de rede'));
+            };
+            
+            xhr.send();
+        });
+        
+        console.log('Arquivo carregado, processando...');
+        
+        const workbook = XLSX.read(response, { type: 'array' });
+        console.log('Abas encontradas:', workbook.SheetNames);
+        
+        dadosExcel = {};
+        
+        // Processar todas as abas
+        workbook.SheetNames.forEach(sheetName => {
+            const worksheet = workbook.Sheets[sheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+                header: 1,
+                defval: '',
+                raw: false
             });
             
-            console.log(`📡 Response status: ${response.status}`);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            if (jsonData.length > 1) {
+                dadosExcel[sheetName] = jsonData;
             }
-            
-            const arrayBuffer = await response.arrayBuffer();
-            console.log(`📦 Arquivo carregado: ${arrayBuffer.byteLength} bytes`);
-            
-            if (arrayBuffer.byteLength === 0) {
-                throw new Error('Arquivo vazio');
-            }
-            
-            const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-            console.log('📋 Abas encontradas:', workbook.SheetNames);
-            
-            dadosExcel = {};
-            
-            workbook.SheetNames.forEach(sheetName => {
-                const worksheet = workbook.Sheets[sheetName];
-                const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
-                    header: 1,
-                    defval: '',
-                    raw: false
-                });
-                
-                if (jsonData.length > 1) {
-                    dadosExcel[sheetName] = jsonData;
-                }
-            });
-            
-            console.log('✅ Dados carregados com sucesso!');
-            return; // Sucesso, sair do loop
-            
-        } catch (error) {
-            console.log(`❌ Tentativa ${i + 1} falhou:`, error.message);
-            ultimoErro = error;
-            
-            // Se não for a última tentativa, continuar
-            if (i < EXCEL_URLS.length - 1) {
-                console.log('🔄 Tentando próxima URL...');
-                continue;
-            }
-        }
+        });
+        
+        console.log('Dados carregados com sucesso:', dadosExcel);
+        
+    } catch (error) {
+        console.error('Erro ao carregar arquivo Excel:', error);
+        throw error;
     }
-    
-    // Se chegou aqui, todas as tentativas falharam
-    throw new Error(`Falha ao carregar dados após ${EXCEL_URLS.length} tentativas. Último erro: ${ultimoErro?.message}`);
 }
 
 // Função para configurar filtros
@@ -157,10 +125,11 @@ function configurarFiltros() {
         const filtroAno = document.getElementById('filtroAno');
         
         if (!filtroMes || !filtroAno) {
-            console.log('⚠️ Filtros não encontrados (talvez não estejam no HTML)');
+            console.log('Filtros não encontrados no HTML');
             return;
         }
         
+        // Preencher anos disponíveis
         const anosDisponiveis = [...new Set(todosDados.map(item => {
             const data = new Date(item.dataOriginal);
             return data.getFullYear();
@@ -171,6 +140,7 @@ function configurarFiltros() {
             filtroAno.innerHTML += `<option value="${ano}">${ano}</option>`;
         });
         
+        // Event listeners para filtros
         filtroMes.addEventListener('change', aplicarFiltros);
         filtroAno.addEventListener('change', aplicarFiltros);
         
@@ -180,7 +150,7 @@ function configurarFiltros() {
         }
         
     } catch (error) {
-        console.error('💥 Erro ao configurar filtros:', error);
+        console.error('Erro ao configurar filtros:', error);
     }
 }
 
@@ -215,7 +185,7 @@ function aplicarFiltros() {
         }
         
     } catch (error) {
-        console.error('💥 Erro ao aplicar filtros:', error);
+        console.error('Erro ao aplicar filtros:', error);
     }
 }
 
@@ -253,7 +223,7 @@ async function atualizarDados() {
         configurarFiltros();
         alert('Dados atualizados com sucesso!');
     } catch (error) {
-        console.error('💥 Erro ao atualizar dados:', error);
+        console.error('Erro ao atualizar dados:', error);
         alert('Erro ao atualizar os dados. Tente novamente.');
     }
     mostrarCarregamento(false);
@@ -267,7 +237,7 @@ function isFimDeSemana(dia) {
            diaLower === 'sunday';
 }
 
-// Função para calcular horas trabalhadas
+// Função para calcular horas trabalhadas corretamente
 function calcularHorasTrabalhadas(entrada1, saida1, entrada2, saida2) {
     const entrada1Min = timeToMinutes(entrada1);
     const saida1Min = timeToMinutes(saida1);
@@ -276,10 +246,12 @@ function calcularHorasTrabalhadas(entrada1, saida1, entrada2, saida2) {
     
     let totalMinutos = 0;
     
+    // Calcular período da manhã
     if (entrada1Min > 0 && saida1Min > 0 && saida1Min > entrada1Min) {
         totalMinutos += saida1Min - entrada1Min;
     }
     
+    // Calcular período da tarde
     if (entrada2Min > 0 && saida2Min > 0 && saida2Min > entrada2Min) {
         totalMinutos += saida2Min - entrada2Min;
     }
@@ -287,22 +259,27 @@ function calcularHorasTrabalhadas(entrada1, saida1, entrada2, saida2) {
     return totalMinutos;
 }
 
-// Função para processar dados
+// Função para processar dados baseado na estrutura real da planilha
 function processarDadosUsuario() {
     const dadosUsuario = [];
     
     if (!dadosExcel) return dadosUsuario;
     
+    // Processar cada aba
     Object.keys(dadosExcel).forEach(sheetName => {
         const dados = dadosExcel[sheetName];
         
         if (!dados || dados.length < 2) return;
         
+        console.log(`Processando aba: ${sheetName}`);
+        
+        // Processar todas as linhas de dados
         for (let i = 1; i < dados.length; i++) {
             const linha = dados[i];
             
             if (!linha || linha.length === 0) continue;
             
+            // Extrair dados baseado na estrutura da planilha
             const data = linha[0] || '';
             const dia = linha[1] || '';
             const entrada1 = linha[2] || '';
@@ -311,10 +288,15 @@ function processarDadosUsuario() {
             const saida2 = linha[5] || '';
             const expediente = linha[6] || '08:48';
             
+            // Só processar se tiver uma data válida
             if (data && data !== '00:00:00' && data !== '') {
+                // Calcular total de horas trabalhadas corretamente
                 const totalMinutosTrabalhados = calcularHorasTrabalhadas(entrada1, saida1, entrada2, saida2);
                 const totalFormatado = minutesToTime(totalMinutosTrabalhados);
+                
+                // Calcular horas extras baseado no cálculo correto
                 const horasExtras = calcularHorasExtras(expediente, totalMinutosTrabalhados, dia);
+                
                 const dataFormatada = formatarData(data);
                 const dataOriginal = converterDataParaDate(data);
                 
@@ -337,33 +319,41 @@ function processarDadosUsuario() {
         }
     });
     
+    // Ordenar por data (mais recente primeiro)
     dadosUsuario.sort((a, b) => new Date(b.dataOriginal) - new Date(a.dataOriginal));
     
-    console.log(`✅ Total de registros processados: ${dadosUsuario.length}`);
+    console.log(`Total de registros processados: ${dadosUsuario.length}`);
     return dadosUsuario;
 }
 
-// Funções auxiliares
+// Função para converter data para objeto Date
 function converterDataParaDate(data) {
     try {
         if (!data) return new Date();
+        
+        // Se for um número (data do Excel)
         if (!isNaN(data)) {
             return new Date((data - 25569) * 86400 * 1000);
         }
+        
+        // Se for string, tentar converter
         return new Date(data);
     } catch (error) {
         return new Date();
     }
 }
 
+// Função para formatar data
 function formatarData(data) {
     if (!data) return '-';
     
     try {
+        // Se já estiver no formato correto, retornar
         if (data.includes('/') || data.includes('-')) {
             return data;
         }
         
+        // Se for um número (data do Excel), converter
         if (!isNaN(data)) {
             const excelDate = new Date((data - 25569) * 86400 * 1000);
             return excelDate.toLocaleDateString('pt-BR');
@@ -375,9 +365,11 @@ function formatarData(data) {
     }
 }
 
+// Função para formatar hora (SEM SEGUNDOS - só HH:MM)
 function formatarHora(hora) {
     if (!hora || hora === '00:00:00' || hora === '0:00:00' || hora === '00:00') return '-';
     
+    // Se já estiver formatado, retornar apenas HH:MM
     if (typeof hora === 'string' && hora.includes(':')) {
         const parts = hora.split(':');
         if (parts.length >= 2) {
@@ -388,20 +380,24 @@ function formatarHora(hora) {
     return hora;
 }
 
+// Função para calcular horas extras (CORRIGIDA PARA SÁBADOS)
 function calcularHorasExtras(expediente, totalMinutosTrabalhados, dia) {
     let he50 = 0;
     let he100 = 0;
 
+    // Se for fim de semana (sábado/domingo), TUDO é HE 100%
     if (isFimDeSemana(dia)) {
         he100 = totalMinutosTrabalhados / 60;
+        console.log(`Fim de semana detectado (${dia}): ${totalMinutosTrabalhados} min = ${he100.toFixed(2)}h HE 100%`);
         return { he50, he100 };
     }
 
+    // Para dias úteis, calcular normalmente
     const expedienteMinutos = timeToMinutes(expediente);
     const saldo = totalMinutosTrabalhados - expedienteMinutos;
 
     if (saldo > 0) {
-        if (saldo <= 120) {
+        if (saldo <= 120) { // Primeiras 2 horas = 50%
             he50 = saldo;
         } else {
             he50 = 120;
@@ -415,6 +411,7 @@ function calcularHorasExtras(expediente, totalMinutosTrabalhados, dia) {
     };
 }
 
+// Funções auxiliares para conversão de tempo
 function timeToMinutes(time) {
     if (!time || time === '-' || time === '00:00:00' || time === '00:00') return 0;
     
@@ -435,13 +432,16 @@ function minutesToTime(minutes) {
     return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
 }
 
+// Função para carregar os dados e renderizar
 function carregarDados() {
     todosDados = processarDadosUsuario();
+    
     renderizarTabela(todosDados);
     renderizarGrafico(todosDados);
     atualizarEstatisticas(todosDados);
 }
 
+// Função para atualizar estatísticas
 function atualizarEstatisticas(dados) {
     const totalRegistros = dados.length;
     const totalHE50 = dados.reduce((sum, row) => sum + row.he50, 0);
@@ -458,6 +458,7 @@ function atualizarEstatisticas(dados) {
     }
 }
 
+// Função para renderizar a tabela
 function renderizarTabela(dados) {
     const tbody = document.getElementById('tableBody');
     if (!tbody) return;
@@ -474,11 +475,13 @@ function renderizarTabela(dados) {
     dados.forEach(row => {
         const tr = document.createElement('tr');
         
+        // Destacar linhas com horas extras
         const temHE = row.he50 > 0 || row.he100 > 0;
         if (temHE) {
             tr.style.backgroundColor = '#f1f8e9';
         }
         
+        // Destacar fins de semana
         if (isFimDeSemana(row.dia)) {
             tr.style.backgroundColor = '#e3f2fd';
         }
@@ -499,6 +502,7 @@ function renderizarTabela(dados) {
     });
 }
 
+// Função para renderizar o gráfico
 function renderizarGrafico(dados) {
     const ctx = document.getElementById('heChart');
     if (!ctx) return;
@@ -509,7 +513,10 @@ function renderizarGrafico(dados) {
     
     if (dados.length === 0) return;
     
+    // Filtrar apenas registros com horas extras para o gráfico
     const dadosComHE = dados.filter(row => row.he50 > 0 || row.he100 > 0);
+    
+    // Pegar últimos 20 registros com HE
     const dadosGrafico = dadosComHE.slice(0, 20).reverse();
     
     const labels = dadosGrafico.map(row => row.data);
@@ -587,6 +594,6 @@ function renderizarGrafico(dados) {
         });
         
     } catch (error) {
-        console.error('💥 Erro ao renderizar gráfico:', error);
+        console.error('Erro ao renderizar gráfico:', error);
     }
 }
