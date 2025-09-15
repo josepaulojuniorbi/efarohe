@@ -65,6 +65,8 @@ async function iniciarDashboard() {
 // Função para carregar dados do Excel
 async function carregarDadosExcel() {
     try {
+        console.log('🔄 Carregando dados do Excel...');
+        
         const response = await new Promise((resolve, reject) => {
             const xhr = new XMLHttpRequest();
             xhr.open('GET', EXCEL_URL, true);
@@ -85,6 +87,8 @@ async function carregarDadosExcel() {
             xhr.send();
         });
         
+        console.log('📊 Processando arquivo Excel...');
+        
         const workbook = XLSX.read(response, { type: 'array' });
         dadosExcel = {};
         
@@ -98,35 +102,44 @@ async function carregarDadosExcel() {
             
             if (jsonData.length > 1) {
                 dadosExcel[sheetName] = jsonData;
+                console.log(`📋 Aba "${sheetName}" carregada com ${jsonData.length} linhas`);
             }
         });
         
+        console.log('✅ Dados Excel carregados com sucesso!');
+        
     } catch (error) {
-        console.error('Erro ao carregar arquivo Excel:', error);
+        console.error('❌ Erro ao carregar arquivo Excel:', error);
         throw error;
     }
 }
 
 // ========================================
-// FUNÇÕES DE CÁLCULO CORRIGIDAS
+// FUNÇÕES DE CÁLCULO DEFINITIVAS
 // ========================================
 
-// Função CORRIGIDA para verificar se é fim de semana
+// Função DEFINITIVA para verificar se é fim de semana
 function isFimDeSemana(dia) {
     if (!dia) return false;
     
     const diaLimpo = dia.toLowerCase().trim();
     
-    // Lista exata de fins de semana (sem usar includes para evitar falsos positivos)
+    // Lista exata de fins de semana
     const finsDeSemanaPalavras = [
         'sábado', 'sabado', 'saturday', 'sab', 'sat',
         'domingo', 'sunday', 'dom', 'sun'
     ];
     
-    return finsDeSemanaPalavras.includes(diaLimpo);
+    const ehFimDeSemana = finsDeSemanaPalavras.includes(diaLimpo);
+    
+    if (ehFimDeSemana) {
+        console.log(`🎯 FIM DE SEMANA DETECTADO: "${dia}"`);
+    }
+    
+    return ehFimDeSemana;
 }
 
-// Função CORRIGIDA para converter hora para minutos
+// Função DEFINITIVA para converter hora para minutos
 function timeToMinutes(time) {
     // Verificar se é vazio ou inválido
     if (!time || time === '-' || time === '00:00:00' || time === '00:00' || time === '' || time === '0') {
@@ -148,14 +161,17 @@ function timeToMinutes(time) {
         
         // Validar se são números válidos
         if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
-            return hours * 60 + minutes;
+            const totalMinutos = hours * 60 + minutes;
+            console.log(`⏰ ${timeStr} = ${totalMinutos} minutos`);
+            return totalMinutos;
         }
     }
     
+    console.log(`⚠️ Hora inválida: "${time}"`);
     return 0;
 }
 
-// Função CORRIGIDA para converter minutos para hora
+// Função DEFINITIVA para converter minutos para hora
 function minutesToTime(minutes) {
     if (!minutes || minutes <= 0) return '00:00';
     
@@ -165,8 +181,11 @@ function minutesToTime(minutes) {
     return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
 }
 
-// Função CORRIGIDA para calcular horas trabalhadas
+// Função DEFINITIVA para calcular horas trabalhadas
 function calcularHorasTrabalhadas(entrada1, saida1, entrada2, saida2) {
+    console.log(`\n🕐 CALCULANDO HORAS:`);
+    console.log(`🕐 E1: "${entrada1}" | S1: "${saida1}" | E2: "${entrada2}" | S2: "${saida2}"`);
+    
     let totalMinutos = 0;
     
     // Período 1 (manhã ou período único)
@@ -174,7 +193,9 @@ function calcularHorasTrabalhadas(entrada1, saida1, entrada2, saida2) {
     const saida1Min = timeToMinutes(saida1);
     
     if (entrada1Min > 0 && saida1Min > 0 && saida1Min > entrada1Min) {
-        totalMinutos += saida1Min - entrada1Min;
+        const periodo1 = saida1Min - entrada1Min;
+        totalMinutos += periodo1;
+        console.log(`🕐 Período 1: ${periodo1} minutos (${minutesToTime(periodo1)})`);
     }
     
     // Período 2 (tarde - só se existir)
@@ -182,60 +203,83 @@ function calcularHorasTrabalhadas(entrada1, saida1, entrada2, saida2) {
     const saida2Min = timeToMinutes(saida2);
     
     if (entrada2Min > 0 && saida2Min > 0 && saida2Min > entrada2Min) {
-        totalMinutos += saida2Min - entrada2Min;
+        const periodo2 = saida2Min - entrada2Min;
+        totalMinutos += periodo2;
+        console.log(`🕐 Período 2: ${periodo2} minutos (${minutesToTime(periodo2)})`);
     }
     
+    console.log(`🕐 TOTAL TRABALHADO: ${totalMinutos} minutos = ${minutesToTime(totalMinutos)}`);
     return totalMinutos;
 }
 
-// Função CORRIGIDA para calcular horas extras
+// Função DEFINITIVA para calcular horas extras
 function calcularHorasExtras(expediente, totalMinutosTrabalhados, dia) {
+    console.log(`\n📊 CALCULANDO HORAS EXTRAS:`);
+    console.log(`📊 Dia: "${dia}"`);
+    console.log(`📊 Total trabalhado: ${totalMinutosTrabalhados} min = ${minutesToTime(totalMinutosTrabalhados)}`);
+    console.log(`📊 Expediente: "${expediente}"`);
+    
     let he50 = 0;
     let he100 = 0;
     
     // REGRA 1: Se for fim de semana, TUDO é HE 100%
     if (isFimDeSemana(dia)) {
         he100 = totalMinutosTrabalhados / 60;
+        console.log(`🎯 FIM DE SEMANA! TUDO vira HE 100%: ${he100.toFixed(2)}h`);
         return { he50, he100 };
     }
     
     // REGRA 2: Para dias úteis, calcular baseado no expediente
     const expedienteMinutos = timeToMinutes(expediente);
+    console.log(`📊 Expediente em minutos: ${expedienteMinutos}`);
     
     // Se expediente for 0 ou inválido, tratar como fim de semana
     if (expedienteMinutos === 0) {
         he100 = totalMinutosTrabalhados / 60;
+        console.log(`📊 EXPEDIENTE ZERO! TUDO vira HE 100%: ${he100.toFixed(2)}h`);
         return { he50, he100 };
     }
     
     // Calcular saldo de horas extras
     const saldoMinutos = totalMinutosTrabalhados - expedienteMinutos;
+    console.log(`📊 Saldo: ${saldoMinutos} minutos`);
     
     if (saldoMinutos > 0) {
         // Primeiras 2 horas = HE 50%
         if (saldoMinutos <= 120) {
             he50 = saldoMinutos / 60;
+            console.log(`📊 HE 50%: ${he50.toFixed(2)}h`);
         } else {
             // Primeiras 2h = HE 50%, resto = HE 100%
             he50 = 2; // 2 horas fixas
             he100 = (saldoMinutos - 120) / 60;
+            console.log(`📊 HE 50%: ${he50.toFixed(2)}h | HE 100%: ${he100.toFixed(2)}h`);
         }
+    } else {
+        console.log(`📊 SEM HORAS EXTRAS`);
     }
     
+    console.log(`📊 RESULTADO: HE50=${he50.toFixed(2)}h | HE100=${he100.toFixed(2)}h`);
     return { he50, he100 };
 }
 
-// Função CORRIGIDA para processar dados
+// Função DEFINITIVA para processar dados (SEM PERDER REGISTROS)
 function processarDadosUsuario() {
+    console.log('\n🚀 INICIANDO PROCESSAMENTO DOS DADOS...');
     const dadosUsuario = [];
     
-    if (!dadosExcel) return dadosUsuario;
+    if (!dadosExcel) {
+        console.log('❌ Dados Excel não disponíveis');
+        return dadosUsuario;
+    }
     
     // Processar cada aba
     Object.keys(dadosExcel).forEach(sheetName => {
         const dados = dadosExcel[sheetName];
         
         if (!dados || dados.length < 2) return;
+        
+        console.log(`\n📄 Processando aba: ${sheetName} - ${dados.length} linhas`);
         
         // Processar todas as linhas (começando da linha 1, pulando cabeçalho)
         for (let i = 1; i < dados.length; i++) {
@@ -253,41 +297,60 @@ function processarDadosUsuario() {
             const saida2 = linha[5] || '';
             const expediente = linha[6] || '08:48';
             
-            // Verificar se tem uma data válida
-            if (data && data !== '00:00:00' && data !== '' && data !== '0') {
+            console.log(`\n📝 Linha ${i}: Data="${data}", Dia="${dia}"`);
+            console.log(`📝 Horários: E1="${entrada1}", S1="${saida1}", E2="${entrada2}", S2="${saida2}", Exp="${expediente}"`);
+            
+            // Verificar se tem uma data válida (CRITÉRIO MAIS FLEXÍVEL)
+            if (data && data !== '00:00:00' && data !== '' && data !== '0' && data !== 0) {
                 
                 // Calcular horas trabalhadas
                 const totalMinutosTrabalhados = calcularHorasTrabalhadas(entrada1, saida1, entrada2, saida2);
                 
-                // Só processar se trabalhou alguma coisa
-                if (totalMinutosTrabalhados > 0) {
-                    const totalFormatado = minutesToTime(totalMinutosTrabalhados);
-                    const horasExtras = calcularHorasExtras(expediente, totalMinutosTrabalhados, dia);
-                    
-                    const registro = {
-                        data: formatarData(data),
-                        dataOriginal: converterDataParaDate(data),
-                        dia: dia,
-                        entrada1: formatarHora(entrada1),
-                        saida1: formatarHora(saida1),
-                        entrada2: formatarHora(entrada2),
-                        saida2: formatarHora(saida2),
-                        expediente: formatarHora(expediente),
-                        total: totalFormatado,
-                        totalMinutos: totalMinutosTrabalhados,
-                        he50: horasExtras.he50,
-                        he100: horasExtras.he100,
-                        periodo: sheetName
-                    };
-                    
-                    dadosUsuario.push(registro);
-                }
+                // PROCESSAR TODOS OS REGISTROS, MESMO COM 0 HORAS
+                const totalFormatado = minutesToTime(totalMinutosTrabalhados);
+                const horasExtras = calcularHorasExtras(expediente, totalMinutosTrabalhados, dia);
+                
+                const registro = {
+                    data: formatarData(data),
+                    dataOriginal: converterDataParaDate(data),
+                    dia: dia,
+                    entrada1: formatarHora(entrada1),
+                    saida1: formatarHora(saida1),
+                    entrada2: formatarHora(entrada2),
+                    saida2: formatarHora(saida2),
+                    expediente: formatarHora(expediente),
+                    total: totalFormatado,
+                    totalMinutos: totalMinutosTrabalhados,
+                    he50: horasExtras.he50,
+                    he100: horasExtras.he100,
+                    periodo: sheetName
+                };
+                
+                dadosUsuario.push(registro);
+                console.log(`✅ REGISTRO ADICIONADO: ${data} - ${dia} - Total: ${totalFormatado} - HE50: ${horasExtras.he50.toFixed(2)}h - HE100: ${horasExtras.he100.toFixed(2)}h`);
+            } else {
+                console.log(`⚠️ Linha ${i} ignorada - data inválida: "${data}"`);
             }
         }
     });
     
     // Ordenar por data (mais recente primeiro)
     dadosUsuario.sort((a, b) => new Date(b.dataOriginal) - new Date(a.dataOriginal));
+    
+    console.log(`\n🎉 PROCESSAMENTO CONCLUÍDO!`);
+    console.log(`🎉 TOTAL DE REGISTROS PROCESSADOS: ${dadosUsuario.length}`);
+    
+    // Mostrar resumo das HE
+    const totalHE50 = dadosUsuario.reduce((sum, row) => sum + (row.he50 || 0), 0);
+    const totalHE100 = dadosUsuario.reduce((sum, row) => sum + (row.he100 || 0), 0);
+    console.log(`🎉 TOTAL HE 50%: ${totalHE50.toFixed(2)}h`);
+    console.log(`🎉 TOTAL HE 100%: ${totalHE100.toFixed(2)}h`);
+    
+    // Mostrar todos os registros processados
+    console.log(`\n📋 LISTA DE TODOS OS REGISTROS:`);
+    dadosUsuario.forEach((reg, index) => {
+        console.log(`📋 ${index + 1}. ${reg.data} - ${reg.dia} - ${reg.total} - HE50: ${reg.he50.toFixed(2)}h - HE100: ${reg.he100.toFixed(2)}h`);
+    });
     
     return dadosUsuario;
 }
@@ -354,7 +417,10 @@ function configurarFiltros() {
         const filtroMes = document.getElementById('filtroMes');
         const filtroAno = document.getElementById('filtroAno');
         
-        if (!filtroMes || !filtroAno) return;
+        if (!filtroMes || !filtroAno) {
+            console.log('⚠️ Filtros não encontrados no HTML');
+            return;
+        }
         
         const anosDisponiveis = [...new Set(todosDados.map(item => {
             const data = new Date(item.dataOriginal);
@@ -374,8 +440,10 @@ function configurarFiltros() {
             btnLimpar.addEventListener('click', limparFiltros);
         }
         
+        console.log('✅ Filtros configurados com sucesso');
+        
     } catch (error) {
-        console.error('Erro ao configurar filtros:', error);
+        console.error('❌ Erro ao configurar filtros:', error);
     }
 }
 
@@ -409,7 +477,7 @@ function aplicarFiltros() {
         }
         
     } catch (error) {
-        console.error('Erro ao aplicar filtros:', error);
+        console.error('❌ Erro ao aplicar filtros:', error);
     }
 }
 
@@ -444,17 +512,19 @@ async function atualizarDados() {
         configurarFiltros();
         alert('Dados atualizados com sucesso!');
     } catch (error) {
-        console.error('Erro ao atualizar dados:', error);
+        console.error('❌ Erro ao atualizar dados:', error);
         alert('Erro ao atualizar os dados. Tente novamente.');
     }
     mostrarCarregamento(false);
 }
 
 function carregarDados() {
+    console.log('🔄 Carregando dados...');
     todosDados = processarDadosUsuario();
     renderizarTabela(todosDados);
     renderizarGrafico(todosDados);
     atualizarEstatisticas(todosDados);
+    console.log('✅ Dados carregados e renderizados!');
 }
 
 function atualizarEstatisticas(dados) {
@@ -462,6 +532,12 @@ function atualizarEstatisticas(dados) {
     const totalHE50 = dados.reduce((sum, row) => sum + (row.he50 || 0), 0);
     const totalHE100 = dados.reduce((sum, row) => sum + (row.he100 || 0), 0);
     const totalHorasExtras = totalHE50 + totalHE100;
+    
+    console.log('\n📊 ATUALIZANDO ESTATÍSTICAS:');
+    console.log(`📊 Total de registros: ${totalRegistros}`);
+    console.log(`📊 Total HE 50%: ${totalHE50.toFixed(2)}h`);
+    console.log(`📊 Total HE 100%: ${totalHE100.toFixed(2)}h`);
+    console.log(`📊 Total HE Geral: ${totalHorasExtras.toFixed(2)}h`);
     
     document.getElementById('totalRegistros').textContent = totalRegistros;
     document.getElementById('totalHE50').textContent = `${totalHE50.toFixed(2)}h`;
@@ -475,7 +551,10 @@ function atualizarEstatisticas(dados) {
 
 function renderizarTabela(dados) {
     const tbody = document.getElementById('tableBody');
-    if (!tbody) return;
+    if (!tbody) {
+        console.log('⚠️ Elemento tableBody não encontrado');
+        return;
+    }
     
     tbody.innerHTML = '';
 
@@ -486,7 +565,9 @@ function renderizarTabela(dados) {
         return;
     }
 
-    dados.forEach(row => {
+    console.log(`📋 Renderizando tabela com ${dados.length} registros`);
+
+    dados.forEach((row, index) => {
         const tr = document.createElement('tr');
         
         // Destacar linhas com horas extras
@@ -499,6 +580,7 @@ function renderizarTabela(dados) {
         if (isFimDeSemana(row.dia)) {
             tr.style.backgroundColor = '#e3f2fd';
             tr.style.fontWeight = 'bold';
+            console.log(`🎯 Destacando fim de semana: ${row.data} - ${row.dia}`);
         }
         
         tr.innerHTML = `
@@ -515,20 +597,30 @@ function renderizarTabela(dados) {
         `;
         tbody.appendChild(tr);
     });
+    
+    console.log('✅ Tabela renderizada com sucesso!');
 }
 
 function renderizarGrafico(dados) {
     const ctx = document.getElementById('heChart');
-    if (!ctx) return;
+    if (!ctx) {
+        console.log('⚠️ Elemento heChart não encontrado');
+        return;
+    }
     
     if (graficoAtual) {
         graficoAtual.destroy();
     }
     
-    if (dados.length === 0) return;
+    if (dados.length === 0) {
+        console.log('⚠️ Nenhum dado para renderizar gráfico');
+        return;
+    }
     
     // Filtrar apenas registros com horas extras
     const dadosComHE = dados.filter(row => (row.he50 && row.he50 > 0) || (row.he100 && row.he100 > 0));
+    
+    console.log(`📊 Renderizando gráfico com ${dadosComHE.length} registros com HE`);
     
     // Pegar últimos 20 registros com HE
     const dadosGrafico = dadosComHE.slice(0, 20).reverse();
@@ -607,8 +699,9 @@ function renderizarGrafico(dados) {
             }
         });
         
+        console.log('✅ Gráfico renderizado com sucesso!');
+        
     } catch (error) {
-        console.error('Erro ao renderizar gráfico:', error);
+        console.error('❌ Erro ao renderizar gráfico:', error);
     }
 }
-
