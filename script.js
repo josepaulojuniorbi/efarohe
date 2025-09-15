@@ -4,7 +4,7 @@ const EXCEL_URL = 'https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/r
 // Usuários e senhas
 const usuarios = [
     { nome: 'José Paulo', email: 'josepaulojunior@live.com', senha: 'efaro2024' },
-    { nome: 'Deise Borsato', email: 'deise.silva@efaro.com', senha: 'efaro2024' },
+    { nome: 'Deise Borsato', email: 'deise.silva@efaro.com.br', senha: 'efaro2024' },
     { nome: 'Everton Henrique', email: 'everton@efaro.com.br', senha: 'efaro2024' },
     { nome: 'Matheus Rodas', email: 'matheus@efaro.com.br', senha: 'efaro2024' }
 ];
@@ -12,6 +12,7 @@ const usuarios = [
 let usuarioLogado = null;
 let dadosExcel = null;
 let graficoAtual = null;
+let todosDados = []; // Armazenar todos os dados para filtros
 
 // Função de login
 document.getElementById('loginForm').addEventListener('submit', function (event) {
@@ -50,6 +51,7 @@ async function iniciarDashboard() {
         document.getElementById('userNameHeader').textContent = usuarioLogado.nome;
 
         carregarDados();
+        configurarFiltros();
         mostrarCarregamento(false);
     } catch (error) {
         console.error('Erro ao carregar dados:', error);
@@ -58,10 +60,70 @@ async function iniciarDashboard() {
     }
 }
 
+// Função para configurar filtros
+function configurarFiltros() {
+    // Configurar filtro de período
+    const filtroMes = document.getElementById('filtroMes');
+    const filtroAno = document.getElementById('filtroAno');
+    
+    // Preencher anos disponíveis
+    const anosDisponiveis = [...new Set(todosDados.map(item => {
+        const data = new Date(item.dataOriginal);
+        return data.getFullYear();
+    }))].sort((a, b) => b - a);
+    
+    filtroAno.innerHTML = '<option value="">Todos os anos</option>';
+    anosDisponiveis.forEach(ano => {
+        filtroAno.innerHTML += `<option value="${ano}">${ano}</option>`;
+    });
+    
+    // Event listeners para filtros
+    filtroMes.addEventListener('change', aplicarFiltros);
+    filtroAno.addEventListener('change', aplicarFiltros);
+    document.getElementById('btnLimparFiltros').addEventListener('click', limparFiltros);
+}
+
+// Função para aplicar filtros
+function aplicarFiltros() {
+    const mes = document.getElementById('filtroMes').value;
+    const ano = document.getElementById('filtroAno').value;
+    
+    let dadosFiltrados = [...todosDados];
+    
+    if (mes || ano) {
+        dadosFiltrados = todosDados.filter(item => {
+            const data = new Date(item.dataOriginal);
+            const itemMes = data.getMonth() + 1;
+            const itemAno = data.getFullYear();
+            
+            const mesMatch = !mes || itemMes == mes;
+            const anoMatch = !ano || itemAno == ano;
+            
+            return mesMatch && anoMatch;
+        });
+    }
+    
+    renderizarTabela(dadosFiltrados);
+    renderizarGrafico(dadosFiltrados);
+    atualizarEstatisticas(dadosFiltrados);
+    
+    // Atualizar contador de registros filtrados
+    document.getElementById('registrosFiltrados').textContent = 
+        `${dadosFiltrados.length} de ${todosDados.length} registros`;
+}
+
+// Função para limpar filtros
+function limparFiltros() {
+    document.getElementById('filtroMes').value = '';
+    document.getElementById('filtroAno').value = '';
+    aplicarFiltros();
+}
+
 // Função para sair
 function logout() {
     usuarioLogado = null;
     dadosExcel = null;
+    todosDados = [];
     if (graficoAtual) {
         graficoAtual.destroy();
         graficoAtual = null;
@@ -77,6 +139,7 @@ async function atualizarDados() {
     try {
         await carregarDadosExcel();
         carregarDados();
+        configurarFiltros();
         alert('Dados atualizados com sucesso!');
     } catch (error) {
         console.error('Erro ao atualizar dados:', error);
@@ -88,6 +151,8 @@ async function atualizarDados() {
 // Função para carregar dados do Excel
 async function carregarDadosExcel() {
     try {
+        console.log('Carregando dados do Excel...');
+        
         const response = await fetch(EXCEL_URL, {
             method: 'GET',
             cache: 'no-cache'
@@ -124,7 +189,30 @@ async function carregarDadosExcel() {
     }
 }
 
-// Função para processar dados (agora mostra TODOS os dados)
+// Função para calcular horas trabalhadas corretamente (considerando AM/PM)
+function calcularHorasTrabalhadas(entrada1, saida1, entrada2, saida2) {
+    // Converter horários para minutos desde meia-noite
+    const entrada1Min = timeToMinutes(entrada1);
+    const saida1Min = timeToMinutes(saida1);
+    const entrada2Min = timeToMinutes(entrada2);
+    const saida2Min = timeToMinutes(saida2);
+    
+    let totalMinutos = 0;
+    
+    // Calcular período da manhã
+    if (entrada1Min > 0 && saida1Min > 0 && saida1Min > entrada1Min) {
+        totalMinutos += saida1Min - entrada1Min;
+    }
+    
+    // Calcular período da tarde
+    if (entrada2Min > 0 && saida2Min > 0 && saida2Min > entrada2Min) {
+        totalMinutos += saida2Min - entrada2Min;
+    }
+    
+    return totalMinutos;
+}
+
+// Função para processar dados baseado na estrutura real da planilha
 function processarDadosUsuario() {
     const dadosUsuario = [];
     
@@ -133,46 +221,49 @@ function processarDadosUsuario() {
     // Processar cada aba
     Object.keys(dadosExcel).forEach(sheetName => {
         const dados = dadosExcel[sheetName];
-        const cabecalho = dados[0];
+        
+        if (!dados || dados.length < 2) return;
         
         console.log(`Processando aba: ${sheetName}`);
-        console.log('Cabeçalho:', cabecalho);
         
-        // Mapear colunas baseado na posição (assumindo estrutura padrão)
-        // Ajuste estes índices conforme sua planilha
-        const indices = {
-            data: 0,      // Coluna A
-            dia: 1,       // Coluna B  
-            entrada1: 2,  // Coluna C
-            saida1: 3,    // Coluna D
-            entrada2: 4,  // Coluna E
-            saida2: 5,    // Coluna F
-            expediente: 6, // Coluna G
-            total: 7      // Coluna H
-        };
-        
-        // Processar todas as linhas de dados (sem filtro por nome)
+        // Processar todas as linhas de dados
         for (let i = 1; i < dados.length; i++) {
             const linha = dados[i];
             
             if (!linha || linha.length === 0) continue;
             
-            // Pegar dados das colunas
-            const expediente = linha[indices.expediente] || '08:48';
-            const total = linha[indices.total] || '0:00:00';
-            const horasExtras = calcularHorasExtras(expediente, total);
-
-            // Só adicionar se tiver pelo menos uma data
-            if (linha[indices.data]) {
+            // Extrair dados baseado na estrutura da planilha
+            const data = linha[0] || '';
+            const dia = linha[1] || '';
+            const entrada1 = linha[2] || '';
+            const saida1 = linha[3] || '';
+            const entrada2 = linha[4] || '';
+            const saida2 = linha[5] || '';
+            const expediente = linha[6] || '08:48:00';
+            
+            // Só processar se tiver uma data válida
+            if (data && data !== '00:00:00' && data !== '') {
+                // Calcular total de horas trabalhadas corretamente
+                const totalMinutosTrabalhados = calcularHorasTrabalhadas(entrada1, saida1, entrada2, saida2);
+                const totalFormatado = minutesToTime(totalMinutosTrabalhados);
+                
+                // Calcular horas extras baseado no cálculo correto
+                const horasExtras = calcularHorasExtras(expediente, totalMinutosTrabalhados);
+                
+                const dataFormatada = formatarData(data);
+                const dataOriginal = converterDataParaDate(data);
+                
                 dadosUsuario.push({
-                    data: linha[indices.data] || '-',
-                    dia: linha[indices.dia] || '-',
-                    entrada1: linha[indices.entrada1] || '-',
-                    saida1: linha[indices.saida1] || '-',
-                    entrada2: linha[indices.entrada2] || '-',
-                    saida2: linha[indices.saida2] || '-',
-                    expediente,
-                    total,
+                    data: dataFormatada,
+                    dataOriginal: dataOriginal,
+                    dia: dia,
+                    entrada1: formatarHora(entrada1),
+                    saida1: formatarHora(saida1),
+                    entrada2: formatarHora(entrada2),
+                    saida2: formatarHora(saida2),
+                    expediente: formatarHora(expediente),
+                    total: totalFormatado,
+                    totalMinutos: totalMinutosTrabalhados,
                     he50: horasExtras.he50,
                     he100: horasExtras.he100,
                     periodo: sheetName
@@ -181,16 +272,68 @@ function processarDadosUsuario() {
         }
     });
     
+    // Ordenar por data (mais recente primeiro)
+    dadosUsuario.sort((a, b) => new Date(b.dataOriginal) - new Date(a.dataOriginal));
+    
     console.log(`Total de registros processados: ${dadosUsuario.length}`);
     return dadosUsuario;
 }
 
-// Função para calcular horas extras
-function calcularHorasExtras(expediente, total) {
-    const expedienteMinutos = timeToMinutes(expediente);
-    const totalMinutos = timeToMinutes(total);
+// Função para converter data para objeto Date
+function converterDataParaDate(data) {
+    try {
+        if (!data) return new Date();
+        
+        // Se for um número (data do Excel)
+        if (!isNaN(data)) {
+            return new Date((data - 25569) * 86400 * 1000);
+        }
+        
+        // Se for string, tentar converter
+        return new Date(data);
+    } catch (error) {
+        return new Date();
+    }
+}
 
-    const saldo = totalMinutos - expedienteMinutos;
+// Função para formatar data
+function formatarData(data) {
+    if (!data) return '-';
+    
+    try {
+        // Se já estiver no formato correto, retornar
+        if (data.includes('/') || data.includes('-')) {
+            return data;
+        }
+        
+        // Se for um número (data do Excel), converter
+        if (!isNaN(data)) {
+            const excelDate = new Date((data - 25569) * 86400 * 1000);
+            return excelDate.toLocaleDateString('pt-BR');
+        }
+        
+        return data;
+    } catch (error) {
+        return data;
+    }
+}
+
+// Função para formatar hora
+function formatarHora(hora) {
+    if (!hora || hora === '00:00:00' || hora === '0:00:00') return '-';
+    
+    // Se já estiver formatado, retornar
+    if (typeof hora === 'string' && hora.includes(':')) {
+        return hora.substring(0, 5); // Pegar apenas HH:MM
+    }
+    
+    return hora;
+}
+
+// Função para calcular horas extras (corrigida)
+function calcularHorasExtras(expediente, totalMinutosTrabalhados) {
+    const expedienteMinutos = timeToMinutes(expediente);
+    const saldo = totalMinutosTrabalhados - expedienteMinutos;
 
     let he50 = 0;
     let he100 = 0;
@@ -212,7 +355,7 @@ function calcularHorasExtras(expediente, total) {
 
 // Funções auxiliares para conversão de tempo
 function timeToMinutes(time) {
-    if (!time || time === '-') return 0;
+    if (!time || time === '-' || time === '00:00:00') return 0;
     
     const timeStr = time.toString().trim();
     const parts = timeStr.split(':');
@@ -233,11 +376,11 @@ function minutesToTime(minutes) {
 
 // Função para carregar os dados e renderizar
 function carregarDados() {
-    const dadosUsuario = processarDadosUsuario();
+    todosDados = processarDadosUsuario();
     
-    renderizarTabela(dadosUsuario);
-    renderizarGrafico(dadosUsuario);
-    atualizarEstatisticas(dadosUsuario);
+    renderizarTabela(todosDados);
+    renderizarGrafico(todosDados);
+    atualizarEstatisticas(todosDados);
 }
 
 // Função para atualizar estatísticas
@@ -245,10 +388,12 @@ function atualizarEstatisticas(dados) {
     const totalRegistros = dados.length;
     const totalHE50 = dados.reduce((sum, row) => sum + row.he50, 0);
     const totalHE100 = dados.reduce((sum, row) => sum + row.he100, 0);
+    const totalHorasExtras = totalHE50 + totalHE100;
     
     document.getElementById('totalRegistros').textContent = totalRegistros;
     document.getElementById('totalHE50').textContent = `${totalHE50.toFixed(2)}h`;
     document.getElementById('totalHE100').textContent = `${totalHE100.toFixed(2)}h`;
+    document.getElementById('totalHorasExtras').textContent = `${totalHorasExtras.toFixed(2)}h`;
 }
 
 // Função para renderizar a tabela
@@ -265,6 +410,13 @@ function renderizarTabela(dados) {
 
     dados.forEach(row => {
         const tr = document.createElement('tr');
+        
+        // Destacar linhas com horas extras
+        const temHE = row.he50 > 0 || row.he100 > 0;
+        if (temHE) {
+            tr.style.backgroundColor = '#f1f8e9';
+        }
+        
         tr.innerHTML = `
             <td>${row.data}</td>
             <td>${row.dia}</td>
@@ -273,7 +425,7 @@ function renderizarTabela(dados) {
             <td>${row.entrada2}</td>
             <td>${row.saida2}</td>
             <td>${row.expediente}</td>
-            <td>${row.total}</td>
+            <td style="font-weight: bold;">${row.total}</td>
             <td style="color: #2e7d32; font-weight: bold;">${row.he50.toFixed(2)}h</td>
             <td style="color: #1b5e20; font-weight: bold;">${row.he100.toFixed(2)}h</td>
         `;
@@ -293,8 +445,12 @@ function renderizarGrafico(dados) {
         return;
     }
     
-    // Pegar últimos 30 registros para o gráfico
-    const dadosGrafico = dados.slice(-30);
+    // Filtrar apenas registros com horas extras para o gráfico
+    const dadosComHE = dados.filter(row => row.he50 > 0 || row.he100 > 0);
+    
+    // Pegar últimos 20 registros com HE
+    const dadosGrafico = dadosComHE.slice(0, 20).reverse();
+    
     const labels = dadosGrafico.map(row => row.data);
     const he50Data = dadosGrafico.map(row => row.he50);
     const he100Data = dadosGrafico.map(row => row.he100);
@@ -335,7 +491,7 @@ function renderizarGrafico(dados) {
                 },
                 title: {
                     display: true,
-                    text: 'Horas Extras - Últimos 30 Registros',
+                    text: 'Horas Extras - Últimos 20 Registros',
                     font: {
                         size: 16,
                         weight: 'bold'
