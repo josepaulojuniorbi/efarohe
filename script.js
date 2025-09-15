@@ -1,10 +1,10 @@
 // URL do arquivo Excel no GitHub
 const EXCEL_URL = 'https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/refs/heads/main/base_dados.xlsx';
 
-// Usuários e senhas
+// Usuários e senhas (todos mostram dados do José Paulo)
 const usuarios = [
     { nome: 'José Paulo', email: 'josepaulojunior@live.com', senha: 'efaro2024' },
-    { nome: 'Deise Borsato', email: 'deise.silva@efaro.com.br', senha: 'efaro2024' },
+    { nome: 'Deise Borsato', email: 'deise.silva@efaro.com', senha: 'efaro2024' },
     { nome: 'Everton Henrique', email: 'everton@efaro.com.br', senha: 'efaro2024' },
     { nome: 'Matheus Rodas', email: 'matheus@efaro.com.br', senha: 'efaro2024' }
 ];
@@ -47,8 +47,10 @@ async function iniciarDashboard() {
         
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('dashboard').style.display = 'block';
-        document.getElementById('userName').textContent = usuarioLogado.nome;
-        document.getElementById('userNameHeader').textContent = usuarioLogado.nome;
+        
+        // SEMPRE mostrar "José Paulo" independente de quem logou
+        document.getElementById('userName').textContent = 'José Paulo';
+        document.getElementById('userNameHeader').textContent = 'José Paulo';
 
         carregarDados();
         configurarFiltros();
@@ -153,9 +155,17 @@ async function carregarDadosExcel() {
     try {
         console.log('Carregando dados do Excel...');
         
-        const response = await fetch(EXCEL_URL, {
+        // Adicionar timestamp para forçar atualização
+        const timestamp = new Date().getTime();
+        const urlComCache = `${EXCEL_URL}?t=${timestamp}`;
+        
+        const response = await fetch(urlComCache, {
             method: 'GET',
-            cache: 'no-cache'
+            cache: 'no-cache',
+            headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            }
         });
         
         if (!response.ok) {
@@ -187,6 +197,14 @@ async function carregarDadosExcel() {
         console.error('Erro ao carregar arquivo Excel:', error);
         throw error;
     }
+}
+
+// Função para verificar se é sábado ou domingo
+function isFimDeSemana(dia) {
+    const diaLower = dia.toLowerCase();
+    return diaLower === 'sábado' || diaLower === 'sabado' || 
+           diaLower === 'domingo' || diaLower === 'saturday' || 
+           diaLower === 'sunday';
 }
 
 // Função para calcular horas trabalhadas corretamente (considerando AM/PM)
@@ -239,7 +257,7 @@ function processarDadosUsuario() {
             const saida1 = linha[3] || '';
             const entrada2 = linha[4] || '';
             const saida2 = linha[5] || '';
-            const expediente = linha[6] || '08:48:00';
+            const expediente = linha[6] || '08:48';
             
             // Só processar se tiver uma data válida
             if (data && data !== '00:00:00' && data !== '') {
@@ -248,7 +266,7 @@ function processarDadosUsuario() {
                 const totalFormatado = minutesToTime(totalMinutosTrabalhados);
                 
                 // Calcular horas extras baseado no cálculo correto
-                const horasExtras = calcularHorasExtras(expediente, totalMinutosTrabalhados);
+                const horasExtras = calcularHorasExtras(expediente, totalMinutosTrabalhados, dia);
                 
                 const dataFormatada = formatarData(data);
                 const dataOriginal = converterDataParaDate(data);
@@ -318,25 +336,36 @@ function formatarData(data) {
     }
 }
 
-// Função para formatar hora
+// Função para formatar hora (SEM SEGUNDOS - só HH:MM)
 function formatarHora(hora) {
-    if (!hora || hora === '00:00:00' || hora === '0:00:00') return '-';
+    if (!hora || hora === '00:00:00' || hora === '0:00:00' || hora === '00:00') return '-';
     
-    // Se já estiver formatado, retornar
+    // Se já estiver formatado, retornar apenas HH:MM
     if (typeof hora === 'string' && hora.includes(':')) {
-        return hora.substring(0, 5); // Pegar apenas HH:MM
+        const parts = hora.split(':');
+        if (parts.length >= 2) {
+            return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
+        }
     }
     
     return hora;
 }
 
-// Função para calcular horas extras (corrigida)
-function calcularHorasExtras(expediente, totalMinutosTrabalhados) {
-    const expedienteMinutos = timeToMinutes(expediente);
-    const saldo = totalMinutosTrabalhados - expedienteMinutos;
-
+// Função para calcular horas extras (CORRIGIDA PARA SÁBADOS)
+function calcularHorasExtras(expediente, totalMinutosTrabalhados, dia) {
     let he50 = 0;
     let he100 = 0;
+
+    // Se for fim de semana (sábado/domingo), TUDO é HE 100%
+    if (isFimDeSemana(dia)) {
+        he100 = totalMinutosTrabalhados / 60;
+        console.log(`Fim de semana detectado (${dia}): ${totalMinutosTrabalhados} min = ${he100.toFixed(2)}h HE 100%`);
+        return { he50, he100 };
+    }
+
+    // Para dias úteis, calcular normalmente
+    const expedienteMinutos = timeToMinutes(expediente);
+    const saldo = totalMinutosTrabalhados - expedienteMinutos;
 
     if (saldo > 0) {
         if (saldo <= 120) { // Primeiras 2 horas = 50%
@@ -355,7 +384,7 @@ function calcularHorasExtras(expediente, totalMinutosTrabalhados) {
 
 // Funções auxiliares para conversão de tempo
 function timeToMinutes(time) {
-    if (!time || time === '-' || time === '00:00:00') return 0;
+    if (!time || time === '-' || time === '00:00:00' || time === '00:00') return 0;
     
     const timeStr = time.toString().trim();
     const parts = timeStr.split(':');
@@ -415,6 +444,11 @@ function renderizarTabela(dados) {
         const temHE = row.he50 > 0 || row.he100 > 0;
         if (temHE) {
             tr.style.backgroundColor = '#f1f8e9';
+        }
+        
+        // Destacar fins de semana
+        if (isFimDeSemana(row.dia)) {
+            tr.style.backgroundColor = '#e3f2fd';
         }
         
         tr.innerHTML = `
@@ -491,7 +525,7 @@ function renderizarGrafico(dados) {
                 },
                 title: {
                     display: true,
-                    text: 'Horas Extras - Últimos 20 Registros',
+                    text: 'Horas Extras - José Paulo - Últimos 20 Registros',
                     font: {
                         size: 16,
                         weight: 'bold'
