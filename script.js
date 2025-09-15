@@ -4,7 +4,7 @@ const EXCEL_URL = 'https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/r
 // Usuários e senhas (todos mostram dados do José Paulo)
 const usuarios = [
     { nome: 'José Paulo', email: 'josepaulojunior@live.com', senha: 'efaro2024' },
-    { nome: 'Deise Borsato', email: 'deise.silva@efaro.com.br', senha: 'efaro2024' },
+    { nome: 'Deise Borsato', email: 'deise.silva@efaro.com', senha: 'efaro2024' },
     { nome: 'Everton Henrique', email: 'everton@efaro.com.br', senha: 'efaro2024' },
     { nome: 'Matheus Rodas', email: 'matheus@efaro.com.br', senha: 'efaro2024' }
 ];
@@ -115,54 +115,58 @@ async function carregarDadosExcel() {
 }
 
 // ========================================
-// FUNÇÕES DE CÁLCULO DEFINITIVAS
+// FUNÇÕES DE CÁLCULO CORRIGIDAS E DEFINITIVAS
 // ========================================
 
-// Função DEFINITIVA para verificar se é fim de semana
+// Função CORRIGIDA para verificar se é fim de semana (mais rigorosa)
 function isFimDeSemana(dia) {
     if (!dia) return false;
     
     const diaLimpo = dia.toLowerCase().trim();
     
-    // Lista exata de fins de semana
-    const finsDeSemanaPalavras = [
-        'sábado', 'sabado', 'saturday', 'sab', 'sat',
-        'domingo', 'sunday', 'dom', 'sun'
-    ];
+    // Lista EXATA de fins de semana (sem variações que podem dar falso positivo)
+    const sabados = ['sábado', 'sabado', 'saturday', 'sab'];
+    const domingos = ['domingo', 'sunday', 'dom'];
     
-    const ehFimDeSemana = finsDeSemanaPalavras.includes(diaLimpo);
+    const ehSabado = sabados.includes(diaLimpo);
+    const ehDomingo = domingos.includes(diaLimpo);
+    const ehFimDeSemana = ehSabado || ehDomingo;
     
     if (ehFimDeSemana) {
-        console.log(`🎯 FIM DE SEMANA DETECTADO: "${dia}"`);
+        console.log(`🎯 FIM DE SEMANA DETECTADO: "${dia}" (${ehSabado ? 'SÁBADO' : 'DOMINGO'})`);
     }
     
     return ehFimDeSemana;
 }
 
-// Função DEFINITIVA para converter hora para minutos
+// Função CORRIGIDA para converter hora para minutos (mais robusta)
 function timeToMinutes(time) {
-    // Verificar se é vazio ou inválido
-    if (!time || time === '-' || time === '00:00:00' || time === '00:00' || time === '' || time === '0') {
+    // Lista de valores que devem ser considerados como 0
+    const valoresVazios = [null, undefined, '', '-', '00:00:00', '00:00', '0', 0, '12:00:00', '12:00'];
+    
+    if (valoresVazios.includes(time)) {
         return 0;
     }
     
     // Converter para string e limpar
     const timeStr = String(time).trim();
     
-    // Se ainda estiver vazio
-    if (!timeStr || timeStr === '0') return 0;
+    // Se ainda estiver vazio ou for um dos valores vazios
+    if (!timeStr || valoresVazios.includes(timeStr)) {
+        return 0;
+    }
     
     // Dividir por ':'
     const parts = timeStr.split(':');
     
     if (parts.length >= 2) {
-        const hours = parseInt(parts[0], 10) || 0;
-        const minutes = parseInt(parts[1], 10) || 0;
+        const hours = parseInt(parts[0], 10);
+        const minutes = parseInt(parts[1], 10);
         
         // Validar se são números válidos
-        if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
+        if (!isNaN(hours) && !isNaN(minutes) && hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
             const totalMinutos = hours * 60 + minutes;
-            console.log(`⏰ ${timeStr} = ${totalMinutos} minutos`);
+            console.log(`⏰ "${timeStr}" = ${totalMinutos} minutos`);
             return totalMinutos;
         }
     }
@@ -212,7 +216,7 @@ function calcularHorasTrabalhadas(entrada1, saida1, entrada2, saida2) {
     return totalMinutos;
 }
 
-// Função DEFINITIVA para calcular horas extras
+// Função CORRIGIDA para calcular horas extras
 function calcularHorasExtras(expediente, totalMinutosTrabalhados, dia) {
     console.log(`\n📊 CALCULANDO HORAS EXTRAS:`);
     console.log(`📊 Dia: "${dia}"`);
@@ -240,26 +244,26 @@ function calcularHorasExtras(expediente, totalMinutosTrabalhados, dia) {
         return { he50, he100 };
     }
     
-    // Calcular saldo de horas extras
+    // Calcular saldo de horas extras (só conta se trabalhou MAIS que o expediente)
     const saldoMinutos = totalMinutosTrabalhados - expedienteMinutos;
     console.log(`📊 Saldo: ${saldoMinutos} minutos`);
     
     if (saldoMinutos > 0) {
-        // Primeiras 2 horas = HE 50%
-        if (saldoMinutos <= 120) {
+        // Primeiras 2 horas extras = HE 50%
+        if (saldoMinutos <= 120) { // 120 minutos = 2 horas
             he50 = saldoMinutos / 60;
-            console.log(`📊 HE 50%: ${he50.toFixed(2)}h`);
+            console.log(`📊 Até 2h extras: HE 50% = ${he50.toFixed(2)}h`);
         } else {
             // Primeiras 2h = HE 50%, resto = HE 100%
-            he50 = 2; // 2 horas fixas
+            he50 = 120 / 60; // Exatamente 2 horas
             he100 = (saldoMinutos - 120) / 60;
-            console.log(`📊 HE 50%: ${he50.toFixed(2)}h | HE 100%: ${he100.toFixed(2)}h`);
+            console.log(`📊 Mais de 2h extras: HE 50% = ${he50.toFixed(2)}h | HE 100% = ${he100.toFixed(2)}h`);
         }
     } else {
-        console.log(`📊 SEM HORAS EXTRAS`);
+        console.log(`📊 SEM HORAS EXTRAS (trabalhou ${Math.abs(saldoMinutos)} min a menos que o expediente)`);
     }
     
-    console.log(`📊 RESULTADO: HE50=${he50.toFixed(2)}h | HE100=${he100.toFixed(2)}h`);
+    console.log(`📊 RESULTADO FINAL: HE50=${he50.toFixed(2)}h | HE100=${he100.toFixed(2)}h`);
     return { he50, he100 };
 }
 
@@ -635,7 +639,7 @@ function renderizarGrafico(dados) {
             data: {
                 labels,
                 datasets: [
-                    {
+                                     {
                         label: 'HE 50%',
                         data: he50Data,
                         backgroundColor: 'rgba(46, 125, 50, 0.8)',
