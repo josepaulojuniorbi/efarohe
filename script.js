@@ -4,7 +4,7 @@ const EXCEL_URL = 'https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/r
 // Usuários e senhas (todos mostram dados do José Paulo)
 const usuarios = [
     { nome: 'José Paulo', email: 'josepaulojunior@live.com', senha: 'efaro2024' },
-    { nome: 'Deise Borsato', email: 'deise.silva@efaro.com', senha: 'efaro2024' },
+    { nome: 'Deise Borsato', email: 'deise.silva@efaro.com.br', senha: 'efaro2024' },
     { nome: 'Everton Henrique', email: 'everton@efaro.com.br', senha: 'efaro2024' },
     { nome: 'Matheus Rodas', email: 'matheus@efaro.com.br', senha: 'efaro2024' }
 ];
@@ -229,34 +229,132 @@ async function atualizarDados() {
     mostrarCarregamento(false);
 }
 
-// Função para verificar se é sábado ou domingo
+// ========================================
+// FUNÇÕES DE CÁLCULO REFORMULADAS
+// ========================================
+
+// Função ROBUSTA para verificar se é fim de semana
 function isFimDeSemana(dia) {
-    const diaLower = dia.toLowerCase();
-    return diaLower === 'sábado' || diaLower === 'sabado' || 
-           diaLower === 'domingo' || diaLower === 'saturday' || 
-           diaLower === 'sunday';
+    if (!dia) return false;
+    
+    const diaLower = dia.toLowerCase().trim();
+    
+    // Lista completa de variações possíveis
+    const sabados = ['sábado', 'sabado', 'saturday', 'sab', 'sat'];
+    const domingos = ['domingo', 'sunday', 'dom', 'sun'];
+    
+    return sabados.includes(diaLower) || domingos.includes(diaLower);
 }
 
-// Função para calcular horas trabalhadas corretamente
+// Função ROBUSTA para converter hora para minutos
+function timeToMinutes(time) {
+    if (!time || time === '-' || time === '00:00:00' || time === '00:00' || time === '') {
+        return 0;
+    }
+    
+    // Converter para string e limpar
+    const timeStr = time.toString().trim();
+    
+    // Se estiver vazio após trim
+    if (!timeStr) return 0;
+    
+    // Dividir por ':'
+    const parts = timeStr.split(':');
+    
+    if (parts.length >= 2) {
+        const hours = parseInt(parts[0]) || 0;
+        const minutes = parseInt(parts[1]) || 0;
+        
+        // Validar valores
+        if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
+            return hours * 60 + minutes;
+        }
+    }
+    
+    return 0;
+}
+
+// Função ROBUSTA para converter minutos para hora
+function minutesToTime(minutes) {
+    if (!minutes || minutes <= 0) return '00:00';
+    
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    
+    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+}
+
+// Função ROBUSTA para calcular horas trabalhadas
 function calcularHorasTrabalhadas(entrada1, saida1, entrada2, saida2) {
+    let totalMinutos = 0;
+    
+    // Período 1 (manhã/primeiro período)
     const entrada1Min = timeToMinutes(entrada1);
     const saida1Min = timeToMinutes(saida1);
+    
+    if (entrada1Min > 0 && saida1Min > 0) {
+        if (saida1Min > entrada1Min) {
+            totalMinutos += saida1Min - entrada1Min;
+        } else if (saida1Min < entrada1Min) {
+            // Caso de virada de dia (trabalho noturno)
+            totalMinutos += (1440 - entrada1Min) + saida1Min; // 1440 = 24h em minutos
+        }
+    }
+    
+    // Período 2 (tarde/segundo período)
     const entrada2Min = timeToMinutes(entrada2);
     const saida2Min = timeToMinutes(saida2);
     
-    let totalMinutos = 0;
-    
-    // Calcular período da manhã
-    if (entrada1Min > 0 && saida1Min > 0 && saida1Min > entrada1Min) {
-        totalMinutos += saida1Min - entrada1Min;
-    }
-    
-    // Calcular período da tarde
-    if (entrada2Min > 0 && saida2Min > 0 && saida2Min > entrada2Min) {
-        totalMinutos += saida2Min - entrada2Min;
+    if (entrada2Min > 0 && saida2Min > 0) {
+        if (saida2Min > entrada2Min) {
+            totalMinutos += saida2Min - entrada2Min;
+        } else if (saida2Min < entrada2Min) {
+            // Caso de virada de dia (trabalho noturno)
+            totalMinutos += (1440 - entrada2Min) + saida2Min;
+        }
     }
     
     return totalMinutos;
+}
+
+// Função DEFINITIVA para calcular horas extras
+function calcularHorasExtras(expediente, totalMinutosTrabalhados, dia) {
+    let he50 = 0;
+    let he100 = 0;
+    
+    // REGRA DEFINITIVA: Se for fim de semana, TUDO é HE 100%
+    if (isFimDeSemana(dia)) {
+        he100 = totalMinutosTrabalhados / 60;
+        console.log(`🎯 FIM DE SEMANA (${dia}): ${totalMinutosTrabalhados} min = ${he100.toFixed(2)}h HE 100%`);
+        return { he50, he100 };
+    }
+    
+    // Para dias úteis, calcular baseado no expediente
+    const expedienteMinutos = timeToMinutes(expediente);
+    
+    if (expedienteMinutos === 0) {
+        // Se expediente for 0, considerar como fim de semana
+        he100 = totalMinutosTrabalhados / 60;
+        console.log(`🎯 EXPEDIENTE ZERO (${dia}): ${totalMinutosTrabalhados} min = ${he100.toFixed(2)}h HE 100%`);
+        return { he50, he100 };
+    }
+    
+    const saldoMinutos = totalMinutosTrabalhados - expedienteMinutos;
+    
+    if (saldoMinutos > 0) {
+        // Primeiras 2 horas extras = HE 50%
+        if (saldoMinutos <= 120) {
+            he50 = saldoMinutos / 60;
+        } else {
+            // Primeiras 2h = HE 50%, resto = HE 100%
+            he50 = 120 / 60; // 2 horas
+            he100 = (saldoMinutos - 120) / 60;
+        }
+    }
+    
+    console.log(`📊 DIA ÚTIL (${dia}): Expediente=${expedienteMinutos}min, Trabalhado=${totalMinutosTrabalhados}min, HE50=${he50.toFixed(2)}h, HE100=${he100.toFixed(2)}h`);
+    
+    return { he50, he100 };
 }
 
 // Função para processar dados baseado na estrutura real da planilha
@@ -271,7 +369,7 @@ function processarDadosUsuario() {
         
         if (!dados || dados.length < 2) return;
         
-        console.log(`Processando aba: ${sheetName}`);
+        console.log(`📄 Processando aba: ${sheetName}`);
         
         // Processar todas as linhas de dados
         for (let i = 1; i < dados.length; i++) {
@@ -290,11 +388,11 @@ function processarDadosUsuario() {
             
             // Só processar se tiver uma data válida
             if (data && data !== '00:00:00' && data !== '') {
-                // Calcular total de horas trabalhadas corretamente
+                // Calcular total de horas trabalhadas
                 const totalMinutosTrabalhados = calcularHorasTrabalhadas(entrada1, saida1, entrada2, saida2);
                 const totalFormatado = minutesToTime(totalMinutosTrabalhados);
                 
-                // Calcular horas extras baseado no cálculo correto
+                // Calcular horas extras
                 const horasExtras = calcularHorasExtras(expediente, totalMinutosTrabalhados, dia);
                 
                 const dataFormatada = formatarData(data);
@@ -322,7 +420,7 @@ function processarDadosUsuario() {
     // Ordenar por data (mais recente primeiro)
     dadosUsuario.sort((a, b) => new Date(b.dataOriginal) - new Date(a.dataOriginal));
     
-    console.log(`Total de registros processados: ${dadosUsuario.length}`);
+    console.log(`✅ Total de registros processados: ${dadosUsuario.length}`);
     return dadosUsuario;
 }
 
@@ -367,7 +465,7 @@ function formatarData(data) {
 
 // Função para formatar hora (SEM SEGUNDOS - só HH:MM)
 function formatarHora(hora) {
-    if (!hora || hora === '00:00:00' || hora === '0:00:00' || hora === '00:00') return '-';
+    if (!hora || hora === '00:00:00' || hora === '0:00:00' || hora === '00:00' || hora === '') return '-';
     
     // Se já estiver formatado, retornar apenas HH:MM
     if (typeof hora === 'string' && hora.includes(':')) {
@@ -378,58 +476,6 @@ function formatarHora(hora) {
     }
     
     return hora;
-}
-
-// Função para calcular horas extras (CORRIGIDA PARA SÁBADOS)
-function calcularHorasExtras(expediente, totalMinutosTrabalhados, dia) {
-    let he50 = 0;
-    let he100 = 0;
-
-    // Se for fim de semana (sábado/domingo), TUDO é HE 100%
-    if (isFimDeSemana(dia)) {
-        he100 = totalMinutosTrabalhados / 60;
-        console.log(`Fim de semana detectado (${dia}): ${totalMinutosTrabalhados} min = ${he100.toFixed(2)}h HE 100%`);
-        return { he50, he100 };
-    }
-
-    // Para dias úteis, calcular normalmente
-    const expedienteMinutos = timeToMinutes(expediente);
-    const saldo = totalMinutosTrabalhados - expedienteMinutos;
-
-    if (saldo > 0) {
-        if (saldo <= 120) { // Primeiras 2 horas = 50%
-            he50 = saldo;
-        } else {
-            he50 = 120;
-            he100 = saldo - 120;
-        }
-    }
-
-    return {
-        he50: he50 / 60,
-        he100: he100 / 60
-    };
-}
-
-// Funções auxiliares para conversão de tempo
-function timeToMinutes(time) {
-    if (!time || time === '-' || time === '00:00:00' || time === '00:00') return 0;
-    
-    const timeStr = time.toString().trim();
-    const parts = timeStr.split(':');
-    if (parts.length >= 2) {
-        const hours = parseInt(parts[0]) || 0;
-        const minutes = parseInt(parts[1]) || 0;
-        return hours * 60 + minutes;
-    }
-    
-    return 0;
-}
-
-function minutesToTime(minutes) {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
 }
 
 // Função para carregar os dados e renderizar
