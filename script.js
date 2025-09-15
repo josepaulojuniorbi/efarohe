@@ -4,7 +4,7 @@ const EXCEL_URL = 'https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/r
 // Usuários e senhas (todos mostram dados do José Paulo)
 const usuarios = [
     { nome: 'José Paulo', email: 'josepaulojunior@live.com', senha: 'efaro2024' },
-    { nome: 'Deise Borsato', email: 'deise.silva@efaro.com.br', senha: 'efaro2024' },
+    { nome: 'Deise Borsato', email: 'deise.silva@efaro.com', senha: 'efaro2024' },
     { nome: 'Everton Henrique', email: 'everton@efaro.com.br', senha: 'efaro2024' },
     { nome: 'Matheus Rodas', email: 'matheus@efaro.com.br', senha: 'efaro2024' }
 ];
@@ -48,7 +48,6 @@ async function iniciarDashboard() {
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('dashboard').style.display = 'block';
         
-        // SEMPRE mostrar "José Paulo" independente de quem logou
         document.getElementById('userName').textContent = 'José Paulo';
         document.getElementById('userNameHeader').textContent = 'José Paulo';
 
@@ -63,12 +62,9 @@ async function iniciarDashboard() {
     }
 }
 
-// Função para carregar dados do Excel (SEM CORS)
+// Função para carregar dados do Excel
 async function carregarDadosExcel() {
     try {
-        console.log('Carregando dados do Excel...');
-        
-        // Usar XMLHttpRequest para evitar CORS
         const response = await new Promise((resolve, reject) => {
             const xhr = new XMLHttpRequest();
             xhr.open('GET', EXCEL_URL, true);
@@ -89,14 +85,9 @@ async function carregarDadosExcel() {
             xhr.send();
         });
         
-        console.log('Arquivo carregado, processando...');
-        
         const workbook = XLSX.read(response, { type: 'array' });
-        console.log('Abas encontradas:', workbook.SheetNames);
-        
         dadosExcel = {};
         
-        // Processar todas as abas
         workbook.SheetNames.forEach(sheetName => {
             const worksheet = workbook.Sheets[sheetName];
             const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
@@ -110,8 +101,6 @@ async function carregarDadosExcel() {
             }
         });
         
-        console.log('Dados carregados com sucesso:', dadosExcel);
-        
     } catch (error) {
         console.error('Erro ao carregar arquivo Excel:', error);
         throw error;
@@ -119,52 +108,45 @@ async function carregarDadosExcel() {
 }
 
 // ========================================
-// FUNÇÕES DEFINITIVAS PARA FINS DE SEMANA
+// FUNÇÕES DE CÁLCULO CORRIGIDAS
 // ========================================
 
-// Função DEFINITIVA para verificar se é fim de semana
+// Função CORRIGIDA para verificar se é fim de semana
 function isFimDeSemana(dia) {
     if (!dia) return false;
     
-    const diaLower = dia.toLowerCase().trim();
+    const diaLimpo = dia.toLowerCase().trim();
     
-    // Lista COMPLETA de variações possíveis para sábado e domingo
+    // Lista exata de fins de semana (sem usar includes para evitar falsos positivos)
     const finsDeSemanaPalavras = [
-        // Sábados
         'sábado', 'sabado', 'saturday', 'sab', 'sat',
-        // Domingos  
         'domingo', 'sunday', 'dom', 'sun'
     ];
     
-    const ehFimDeSemana = finsDeSemanaPalavras.includes(diaLower);
-    
-    if (ehFimDeSemana) {
-        console.log(`🎯 DETECTADO FIM DE SEMANA: "${dia}" -> ${diaLower}`);
-    }
-    
-    return ehFimDeSemana;
+    return finsDeSemanaPalavras.includes(diaLimpo);
 }
 
-// Função DEFINITIVA para converter hora para minutos
+// Função CORRIGIDA para converter hora para minutos
 function timeToMinutes(time) {
-    if (!time || time === '-' || time === '00:00:00' || time === '00:00' || time === '' || time === '12:00') {
+    // Verificar se é vazio ou inválido
+    if (!time || time === '-' || time === '00:00:00' || time === '00:00' || time === '' || time === '0') {
         return 0;
     }
     
     // Converter para string e limpar
-    const timeStr = time.toString().trim();
+    const timeStr = String(time).trim();
     
-    // Se estiver vazio após trim
-    if (!timeStr || timeStr === '12:00') return 0;
+    // Se ainda estiver vazio
+    if (!timeStr || timeStr === '0') return 0;
     
     // Dividir por ':'
     const parts = timeStr.split(':');
     
     if (parts.length >= 2) {
-        const hours = parseInt(parts[0]) || 0;
-        const minutes = parseInt(parts[1]) || 0;
+        const hours = parseInt(parts[0], 10) || 0;
+        const minutes = parseInt(parts[1], 10) || 0;
         
-        // Validar valores
+        // Validar se são números válidos
         if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
             return hours * 60 + minutes;
         }
@@ -173,7 +155,7 @@ function timeToMinutes(time) {
     return 0;
 }
 
-// Função DEFINITIVA para converter minutos para hora
+// Função CORRIGIDA para converter minutos para hora
 function minutesToTime(minutes) {
     if (!minutes || minutes <= 0) return '00:00';
     
@@ -183,86 +165,187 @@ function minutesToTime(minutes) {
     return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
 }
 
-// Função DEFINITIVA para calcular horas trabalhadas
+// Função CORRIGIDA para calcular horas trabalhadas
 function calcularHorasTrabalhadas(entrada1, saida1, entrada2, saida2) {
     let totalMinutos = 0;
     
-    // Período 1 (manhã/primeiro período)
+    // Período 1 (manhã ou período único)
     const entrada1Min = timeToMinutes(entrada1);
     const saida1Min = timeToMinutes(saida1);
     
     if (entrada1Min > 0 && saida1Min > 0 && saida1Min > entrada1Min) {
-        const periodo1 = saida1Min - entrada1Min;
-        totalMinutos += periodo1;
-        console.log(`🕐 Período 1: ${entrada1} às ${saida1} = ${periodo1} min (${minutesToTime(periodo1)})`);
+        totalMinutos += saida1Min - entrada1Min;
     }
     
-    // Período 2 (tarde/segundo período)
+    // Período 2 (tarde - só se existir)
     const entrada2Min = timeToMinutes(entrada2);
     const saida2Min = timeToMinutes(saida2);
     
     if (entrada2Min > 0 && saida2Min > 0 && saida2Min > entrada2Min) {
-        const periodo2 = saida2Min - entrada2Min;
-        totalMinutos += periodo2;
-        console.log(`🕐 Período 2: ${entrada2} às ${saida2} = ${periodo2} min (${minutesToTime(periodo2)})`);
+        totalMinutos += saida2Min - entrada2Min;
     }
     
-    console.log(`⏱️ TOTAL TRABALHADO: ${totalMinutos} min = ${minutesToTime(totalMinutos)}`);
     return totalMinutos;
 }
 
-// Função DEFINITIVA para calcular horas extras
+// Função CORRIGIDA para calcular horas extras
 function calcularHorasExtras(expediente, totalMinutosTrabalhados, dia) {
     let he50 = 0;
     let he100 = 0;
     
-    console.log(`\n📊 ===== CALCULANDO HE PARA ${dia.toUpperCase()} =====`);
-    console.log(`📊 Total trabalhado: ${totalMinutosTrabalhados} min = ${minutesToTime(totalMinutosTrabalhados)}`);
-    
-    // ⭐ REGRA PRINCIPAL: FIM DE SEMANA = TUDO HE 100%
+    // REGRA 1: Se for fim de semana, TUDO é HE 100%
     if (isFimDeSemana(dia)) {
         he100 = totalMinutosTrabalhados / 60;
-        console.log(`🎯 🎯 🎯 FIM DE SEMANA DETECTADO! 🎯 🎯 🎯`);
-        console.log(`🎯 DIA: ${dia}`);
-        console.log(`🎯 TOTAL: ${minutesToTime(totalMinutosTrabalhados)}`);
-        console.log(`🎯 HE 100%: ${he100.toFixed(2)}h`);
-        console.log(`🎯 🎯 🎯 🎯 🎯 🎯 🎯 🎯 🎯 🎯 🎯 🎯`);
         return { he50, he100 };
     }
     
-    // Para dias úteis, calcular baseado no expediente
+    // REGRA 2: Para dias úteis, calcular baseado no expediente
     const expedienteMinutos = timeToMinutes(expediente);
-    console.log(`📊 Expediente: ${expedienteMinutos} min = ${minutesToTime(expedienteMinutos)}`);
     
     // Se expediente for 0 ou inválido, tratar como fim de semana
     if (expedienteMinutos === 0) {
         he100 = totalMinutosTrabalhados / 60;
-        console.log(`🎯 EXPEDIENTE ZERO - TRATANDO COMO FIM DE SEMANA`);
-        console.log(`🎯 HE 100%: ${he100.toFixed(2)}h`);
         return { he50, he100 };
     }
     
+    // Calcular saldo de horas extras
     const saldoMinutos = totalMinutosTrabalhados - expedienteMinutos;
-    console.log(`📊 Saldo: ${saldoMinutos} min = ${minutesToTime(Math.abs(saldoMinutos))}`);
     
     if (saldoMinutos > 0) {
-        // Primeiras 2 horas extras = HE 50%
+        // Primeiras 2 horas = HE 50%
         if (saldoMinutos <= 120) {
             he50 = saldoMinutos / 60;
-            console.log(`📊 DIA ÚTIL - HE 50%: ${he50.toFixed(2)}h`);
         } else {
             // Primeiras 2h = HE 50%, resto = HE 100%
-            he50 = 120 / 60; // 2 horas
+            he50 = 2; // 2 horas fixas
             he100 = (saldoMinutos - 120) / 60;
-            console.log(`📊 DIA ÚTIL - HE 50%: ${he50.toFixed(2)}h, HE 100%: ${he100.toFixed(2)}h`);
         }
-    } else {
-        console.log(`📊 DIA ÚTIL - SEM HORAS EXTRAS`);
     }
     
-    console.log(`📊 ===== FIM DO CÁLCULO =====\n`);
-    
     return { he50, he100 };
+}
+
+// Função CORRIGIDA para processar dados
+function processarDadosUsuario() {
+    const dadosUsuario = [];
+    
+    if (!dadosExcel) return dadosUsuario;
+    
+    // Processar cada aba
+    Object.keys(dadosExcel).forEach(sheetName => {
+        const dados = dadosExcel[sheetName];
+        
+        if (!dados || dados.length < 2) return;
+        
+        // Processar todas as linhas (começando da linha 1, pulando cabeçalho)
+        for (let i = 1; i < dados.length; i++) {
+            const linha = dados[i];
+            
+            // Verificar se a linha existe e tem dados
+            if (!linha || linha.length === 0) continue;
+            
+            // Extrair dados das colunas
+            const data = linha[0] || '';
+            const dia = linha[1] || '';
+            const entrada1 = linha[2] || '';
+            const saida1 = linha[3] || '';
+            const entrada2 = linha[4] || '';
+            const saida2 = linha[5] || '';
+            const expediente = linha[6] || '08:48';
+            
+            // Verificar se tem uma data válida
+            if (data && data !== '00:00:00' && data !== '' && data !== '0') {
+                
+                // Calcular horas trabalhadas
+                const totalMinutosTrabalhados = calcularHorasTrabalhadas(entrada1, saida1, entrada2, saida2);
+                
+                // Só processar se trabalhou alguma coisa
+                if (totalMinutosTrabalhados > 0) {
+                    const totalFormatado = minutesToTime(totalMinutosTrabalhados);
+                    const horasExtras = calcularHorasExtras(expediente, totalMinutosTrabalhados, dia);
+                    
+                    const registro = {
+                        data: formatarData(data),
+                        dataOriginal: converterDataParaDate(data),
+                        dia: dia,
+                        entrada1: formatarHora(entrada1),
+                        saida1: formatarHora(saida1),
+                        entrada2: formatarHora(entrada2),
+                        saida2: formatarHora(saida2),
+                        expediente: formatarHora(expediente),
+                        total: totalFormatado,
+                        totalMinutos: totalMinutosTrabalhados,
+                        he50: horasExtras.he50,
+                        he100: horasExtras.he100,
+                        periodo: sheetName
+                    };
+                    
+                    dadosUsuario.push(registro);
+                }
+            }
+        }
+    });
+    
+    // Ordenar por data (mais recente primeiro)
+    dadosUsuario.sort((a, b) => new Date(b.dataOriginal) - new Date(a.dataOriginal));
+    
+    return dadosUsuario;
+}
+
+// Funções auxiliares
+function converterDataParaDate(data) {
+    try {
+        if (!data) return new Date();
+        
+        // Se for um número (data do Excel)
+        if (!isNaN(data) && data > 0) {
+            return new Date((data - 25569) * 86400 * 1000);
+        }
+        
+        // Se for string, tentar converter
+        return new Date(data);
+    } catch (error) {
+        return new Date();
+    }
+}
+
+function formatarData(data) {
+    if (!data) return '-';
+    
+    try {
+        // Se já estiver no formato correto
+        if (typeof data === 'string' && (data.includes('/') || data.includes('-'))) {
+            return data;
+        }
+        
+        // Se for um número (data do Excel)
+        if (!isNaN(data) && data > 0) {
+            const excelDate = new Date((data - 25569) * 86400 * 1000);
+            return excelDate.toLocaleDateString('pt-BR');
+        }
+        
+        return String(data);
+    } catch (error) {
+        return String(data);
+    }
+}
+
+function formatarHora(hora) {
+    if (!hora || hora === '00:00:00' || hora === '0:00:00' || hora === '00:00' || hora === '' || hora === '0') {
+        return '-';
+    }
+    
+    // Se já estiver formatado
+    if (typeof hora === 'string' && hora.includes(':')) {
+        const parts = hora.split(':');
+        if (parts.length >= 2) {
+            const h = parts[0].padStart(2, '0');
+            const m = parts[1].padStart(2, '0');
+            return `${h}:${m}`;
+        }
+    }
+    
+    return String(hora);
 }
 
 // Função para configurar filtros
@@ -271,12 +354,8 @@ function configurarFiltros() {
         const filtroMes = document.getElementById('filtroMes');
         const filtroAno = document.getElementById('filtroAno');
         
-        if (!filtroMes || !filtroAno) {
-            console.log('Filtros não encontrados no HTML');
-            return;
-        }
+        if (!filtroMes || !filtroAno) return;
         
-        // Preencher anos disponíveis
         const anosDisponiveis = [...new Set(todosDados.map(item => {
             const data = new Date(item.dataOriginal);
             return data.getFullYear();
@@ -287,7 +366,6 @@ function configurarFiltros() {
             filtroAno.innerHTML += `<option value="${ano}">${ano}</option>`;
         });
         
-        // Event listeners para filtros
         filtroMes.addEventListener('change', aplicarFiltros);
         filtroAno.addEventListener('change', aplicarFiltros);
         
@@ -301,7 +379,6 @@ function configurarFiltros() {
     }
 }
 
-// Função para aplicar filtros
 function aplicarFiltros() {
     try {
         const mes = document.getElementById('filtroMes')?.value || '';
@@ -336,7 +413,6 @@ function aplicarFiltros() {
     }
 }
 
-// Função para limpar filtros
 function limparFiltros() {
     const filtroMes = document.getElementById('filtroMes');
     const filtroAno = document.getElementById('filtroAno');
@@ -347,7 +423,6 @@ function limparFiltros() {
     aplicarFiltros();
 }
 
-// Função para sair
 function logout() {
     usuarioLogado = null;
     dadosExcel = null;
@@ -361,7 +436,6 @@ function logout() {
     document.getElementById('loginError').style.display = 'none';
 }
 
-// Função para atualizar dados
 async function atualizarDados() {
     mostrarCarregamento(true);
     try {
@@ -376,145 +450,17 @@ async function atualizarDados() {
     mostrarCarregamento(false);
 }
 
-// Função para processar dados baseado na estrutura real da planilha
-function processarDadosUsuario() {
-    const dadosUsuario = [];
-    
-    if (!dadosExcel) return dadosUsuario;
-    
-    // Processar cada aba
-    Object.keys(dadosExcel).forEach(sheetName => {
-        const dados = dadosExcel[sheetName];
-        
-        if (!dados || dados.length < 2) return;
-        
-        console.log(`📄 Processando aba: ${sheetName}`);
-        
-        // Processar todas as linhas de dados
-        for (let i = 1; i < dados.length; i++) {
-            const linha = dados[i];
-            
-            if (!linha || linha.length === 0) continue;
-            
-            // Extrair dados baseado na estrutura da planilha
-            const data = linha[0] || '';
-            const dia = linha[1] || '';
-            const entrada1 = linha[2] || '';
-            const saida1 = linha[3] || '';
-            const entrada2 = linha[4] || '';
-            const saida2 = linha[5] || '';
-            const expediente = linha[6] || '08:48';
-            
-            // Só processar se tiver uma data válida
-            if (data && data !== '00:00:00' && data !== '') {
-                console.log(`\n🔄 Processando linha ${i}: ${data} - ${dia}`);
-                
-                // Calcular total de horas trabalhadas
-                const totalMinutosTrabalhados = calcularHorasTrabalhadas(entrada1, saida1, entrada2, saida2);
-                const totalFormatado = minutesToTime(totalMinutosTrabalhados);
-                
-                // Calcular horas extras
-                const horasExtras = calcularHorasExtras(expediente, totalMinutosTrabalhados, dia);
-                
-                const dataFormatada = formatarData(data);
-                const dataOriginal = converterDataParaDate(data);
-                
-                dadosUsuario.push({
-                    data: dataFormatada,
-                    dataOriginal: dataOriginal,
-                    dia: dia,
-                    entrada1: formatarHora(entrada1),
-                    saida1: formatarHora(saida1),
-                    entrada2: formatarHora(entrada2),
-                    saida2: formatarHora(saida2),
-                    expediente: formatarHora(expediente),
-                    total: totalFormatado,
-                    totalMinutos: totalMinutosTrabalhados,
-                    he50: horasExtras.he50,
-                    he100: horasExtras.he100,
-                    periodo: sheetName
-                });
-                
-                console.log(`✅ Resultado: Total=${totalFormatado}, HE50=${horasExtras.he50.toFixed(2)}h, HE100=${horasExtras.he100.toFixed(2)}h`);
-            }
-        }
-    });
-    
-    // Ordenar por data (mais recente primeiro)
-    dadosUsuario.sort((a, b) => new Date(b.dataOriginal) - new Date(a.dataOriginal));
-    
-    console.log(`✅ Total de registros processados: ${dadosUsuario.length}`);
-    return dadosUsuario;
-}
-
-// Função para converter data para objeto Date
-function converterDataParaDate(data) {
-    try {
-        if (!data) return new Date();
-        
-        // Se for um número (data do Excel)
-        if (!isNaN(data)) {
-            return new Date((data - 25569) * 86400 * 1000);
-        }
-        
-        // Se for string, tentar converter
-        return new Date(data);
-    } catch (error) {
-        return new Date();
-    }
-}
-
-// Função para formatar data
-function formatarData(data) {
-    if (!data) return '-';
-    
-    try {
-        // Se já estiver no formato correto, retornar
-        if (data.includes('/') || data.includes('-')) {
-            return data;
-        }
-        
-        // Se for um número (data do Excel), converter
-        if (!isNaN(data)) {
-            const excelDate = new Date((data - 25569) * 86400 * 1000);
-            return excelDate.toLocaleDateString('pt-BR');
-        }
-        
-        return data;
-    } catch (error) {
-        return data;
-    }
-}
-
-// Função para formatar hora (SEM SEGUNDOS - só HH:MM)
-function formatarHora(hora) {
-    if (!hora || hora === '00:00:00' || hora === '0:00:00' || hora === '00:00' || hora === '' || hora === '12:00') return '-';
-    
-    // Se já estiver formatado, retornar apenas HH:MM
-    if (typeof hora === 'string' && hora.includes(':')) {
-        const parts = hora.split(':');
-        if (parts.length >= 2) {
-            return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
-        }
-    }
-    
-    return hora;
-}
-
-// Função para carregar os dados e renderizar
 function carregarDados() {
     todosDados = processarDadosUsuario();
-    
     renderizarTabela(todosDados);
     renderizarGrafico(todosDados);
     atualizarEstatisticas(todosDados);
 }
 
-// Função para atualizar estatísticas
 function atualizarEstatisticas(dados) {
     const totalRegistros = dados.length;
-    const totalHE50 = dados.reduce((sum, row) => sum + row.he50, 0);
-    const totalHE100 = dados.reduce((sum, row) => sum + row.he100, 0);
+    const totalHE50 = dados.reduce((sum, row) => sum + (row.he50 || 0), 0);
+    const totalHE100 = dados.reduce((sum, row) => sum + (row.he100 || 0), 0);
     const totalHorasExtras = totalHE50 + totalHE100;
     
     document.getElementById('totalRegistros').textContent = totalRegistros;
@@ -527,7 +473,6 @@ function atualizarEstatisticas(dados) {
     }
 }
 
-// Função para renderizar a tabela
 function renderizarTabela(dados) {
     const tbody = document.getElementById('tableBody');
     if (!tbody) return;
@@ -545,12 +490,12 @@ function renderizarTabela(dados) {
         const tr = document.createElement('tr');
         
         // Destacar linhas com horas extras
-        const temHE = row.he50 > 0 || row.he100 > 0;
+        const temHE = (row.he50 && row.he50 > 0) || (row.he100 && row.he100 > 0);
         if (temHE) {
             tr.style.backgroundColor = '#f1f8e9';
         }
         
-        // Destacar fins de semana com cor diferente
+        // Destacar fins de semana
         if (isFimDeSemana(row.dia)) {
             tr.style.backgroundColor = '#e3f2fd';
             tr.style.fontWeight = 'bold';
@@ -565,14 +510,13 @@ function renderizarTabela(dados) {
             <td>${row.saida2}</td>
             <td>${row.expediente}</td>
             <td style="font-weight: bold;">${row.total}</td>
-            <td style="color: #2e7d32; font-weight: bold;">${row.he50.toFixed(2)}h</td>
-            <td style="color: #1b5e20; font-weight: bold;">${row.he100.toFixed(2)}h</td>
+            <td style="color: #2e7d32; font-weight: bold;">${(row.he50 || 0).toFixed(2)}h</td>
+            <td style="color: #1b5e20; font-weight: bold;">${(row.he100 || 0).toFixed(2)}h</td>
         `;
         tbody.appendChild(tr);
     });
 }
 
-// Função para renderizar o gráfico
 function renderizarGrafico(dados) {
     const ctx = document.getElementById('heChart');
     if (!ctx) return;
@@ -583,15 +527,15 @@ function renderizarGrafico(dados) {
     
     if (dados.length === 0) return;
     
-    // Filtrar apenas registros com horas extras para o gráfico
-    const dadosComHE = dados.filter(row => row.he50 > 0 || row.he100 > 0);
+    // Filtrar apenas registros com horas extras
+    const dadosComHE = dados.filter(row => (row.he50 && row.he50 > 0) || (row.he100 && row.he100 > 0));
     
     // Pegar últimos 20 registros com HE
     const dadosGrafico = dadosComHE.slice(0, 20).reverse();
     
     const labels = dadosGrafico.map(row => row.data);
-    const he50Data = dadosGrafico.map(row => row.he50);
-    const he100Data = dadosGrafico.map(row => row.he100);
+    const he50Data = dadosGrafico.map(row => row.he50 || 0);
+    const he100Data = dadosGrafico.map(row => row.he100 || 0);
 
     try {
         graficoAtual = new Chart(ctx.getContext('2d'), {
