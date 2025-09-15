@@ -457,6 +457,34 @@ function gerarAnaliseHorasExtras(dados) {
     console.log(`📊 Análise detalhada das HE atualizada para ${usuarioLogado.nome}`);
 }
 
+// Função para debugar filtros
+function debugFiltros() {
+    console.log('\n🔍 DEBUG DOS FILTROS:');
+    console.log('📊 Total de dados carregados:', todosDados.length);
+    
+    // Mostrar todos os dados com suas datas
+    todosDados.forEach((item, index) => {
+        const data = new Date(item.dataOriginal);
+        const mes = data.getMonth() + 1;
+        const ano = data.getFullYear();
+        console.log(`📅 ${index + 1}. ${item.data} - ${item.dia} - Mês: ${mes} - Ano: ${ano} - HE100: ${item.he100.toFixed(2)}h`);
+    });
+    
+    // Filtrar setembro especificamente
+    const dadosSetembro = todosDados.filter(item => {
+        const data = new Date(item.dataOriginal);
+        const mes = data.getMonth() + 1;
+        return mes === 9; // Setembro
+    });
+    
+    console.log('\n📅 DADOS DE SETEMBRO:');
+    dadosSetembro.forEach((item, index) => {
+        console.log(`📅 ${index + 1}. ${item.data} - ${item.dia} - HE50: ${item.he50.toFixed(2)}h - HE100: ${item.he100.toFixed(2)}h`);
+    });
+    
+    console.log(`\n📊 Total de registros em setembro: ${dadosSetembro.length}`);
+}
+
 // Função para configurar filtros
 function configurarFiltros() {
     try {
@@ -471,7 +499,7 @@ function configurarFiltros() {
         const anosDisponiveis = [...new Set(todosDados.map(item => {
             const data = new Date(item.dataOriginal);
             return data.getFullYear();
-        }))].sort((a, b) => b - a);
+        }))].sort((a, b) => b        }))].sort((a, b) => b - a);
         
         filtroAno.innerHTML = '<option value="">Todos os anos</option>';
         anosDisponiveis.forEach(ano => {
@@ -488,6 +516,9 @@ function configurarFiltros() {
         
         console.log('✅ Filtros configurados com sucesso');
         
+        // ADICIONAR DEBUG DOS FILTROS
+        debugFiltros();
+        
     } catch (error) {
         console.error('❌ Erro ao configurar filtros:', error);
     }
@@ -497,6 +528,8 @@ function aplicarFiltros() {
     try {
         const mes = document.getElementById('filtroMes')?.value || '';
         const ano = document.getElementById('filtroAno')?.value || '';
+        
+        console.log(`\n🔍 APLICANDO FILTROS: Mês=${mes}, Ano=${ano}`);
         
         let dadosFiltrados = [...todosDados];
         
@@ -509,7 +542,24 @@ function aplicarFiltros() {
                 const mesMatch = !mes || itemMes == mes;
                 const anoMatch = !ano || itemAno == ano;
                 
-                return mesMatch && anoMatch;
+                const incluir = mesMatch && anoMatch;
+                
+                // DEBUG: Mostrar cada item sendo filtrado
+                if (mes == 9) { // Se estiver filtrando setembro
+                    console.log(`🔍 Item: ${item.data} - Mês: ${itemMes} - Incluir: ${incluir} - HE100: ${item.he100.toFixed(2)}h`);
+                }
+                
+                return incluir;
+            });
+        }
+        
+        console.log(`🔍 Registros após filtro: ${dadosFiltrados.length} de ${todosDados.length}`);
+        
+        // DEBUG: Mostrar dados filtrados de setembro
+        if (mes == 9) {
+            console.log('\n📅 DADOS FILTRADOS DE SETEMBRO:');
+            dadosFiltrados.forEach((item, index) => {
+                console.log(`📅 ${index + 1}. ${item.data} - ${item.dia} - HE50: ${item.he50.toFixed(2)}h - HE100: ${item.he100.toFixed(2)}h`);
             });
         }
         
@@ -580,7 +630,7 @@ function atualizarEstatisticas(dados) {
     const totalHE100 = dados.reduce((sum, row) => sum + (row.he100 || 0), 0);
     const totalHorasExtras = totalHE50 + totalHE100;
     
-    console.log(`\\n📊 ESTATÍSTICAS PARA ${usuarioLogado.nome}:`);
+    console.log(`\n📊 ESTATÍSTICAS PARA ${usuarioLogado.nome}:`);
     console.log(`📊 Total de registros: ${totalRegistros}`);
     console.log(`📊 Total HE 50%: ${totalHE50.toFixed(2)}h`);
     console.log(`📊 Total HE 100%: ${totalHE100.toFixed(2)}h`);
@@ -630,6 +680,7 @@ function renderizarTabela(dados) {
         if (isFimDeSemanaOuFeriado(row.dia)) {
             tr.style.backgroundColor = '#e3f2fd';
             tr.style.fontWeight = 'bold';
+            console.log(`🎯 Destacando fim de semana na tabela: ${row.data} - ${row.dia} - HE100: ${row.he100.toFixed(2)}h`);
         }
         
         tr.innerHTML = `
@@ -670,6 +721,12 @@ function renderizarGrafico(dados) {
     const dadosComHE = dados.filter(row => (row.he50 && row.he50 > 0) || (row.he100 && row.he100 > 0));
     
     console.log(`📊 Renderizando gráfico com ${dadosComHE.length} registros com HE para ${usuarioLogado.nome}`);
+    
+    // DEBUG: Mostrar dados do gráfico
+    console.log('📊 DADOS PARA O GRÁFICO:');
+    dadosComHE.forEach((item, index) => {
+        console.log(`📊 ${index + 1}. ${item.data} - ${item.dia} - HE50: ${item.he50.toFixed(2)}h - HE100: ${item.he100.toFixed(2)}h`);
+    });
     
     // Pegar últimos 20 registros com HE
     const dadosGrafico = dadosComHE.slice(0, 20).reverse();
