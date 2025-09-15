@@ -42,7 +42,45 @@
                     <span class="stat-label">Total HE 100%:</span>
                     <span id="totalHE100">0h</span>
                 </div>
+                <div class="stat-item">
+                    <span class="stat-label">Total HE Geral:</span>
+                    <span id="totalHorasExtras">0h</span>
+                </div>
             </div>
+            
+            <!-- Filtros -->
+            <div class="filtros-container">
+                <h3>🔍 Filtros</h3>
+                <div class="filtro-item">
+                    <label for="filtroMes">Mês:</label>
+                    <select id="filtroMes">
+                        <option value="">Todos os meses</option>
+                        <option value="1">Janeiro</option>
+                        <option value="2">Fevereiro</option>
+                        <option value="3">Março</option>
+                        <option value="4">Abril</option>
+                        <option value="5">Maio</option>
+                        <option value="6">Junho</option>
+                        <option value="7">Julho</option>
+                        <option value="8">Agosto</option>
+                        <option value="9">Setembro</option>
+                        <option value="10">Outubro</option>
+                        <option value="11">Novembro</option>
+                        <option value="12">Dezembro</option>
+                    </select>
+                </div>
+                <div class="filtro-item">
+                    <label for="filtroAno">Ano:</label>
+                    <select id="filtroAno">
+                        <!-- Preenchido dinamicamente -->
+                    </select>
+                </div>
+                <button id="btnLimparFiltros" class="btn-limpar">🗑️ Limpar Filtros</button>
+                <div class="registros-info">
+                    <span id="registrosFiltrados">0 registros</span>
+                </div>
+            </div>
+            
             <button onclick="atualizarDados()">🔄 Atualizar Dados</button>
             <button onclick="logout()">🚪 Sair</button>
         </div>
