@@ -8,7 +8,7 @@ let sidebarAberto = false;
 // ===== DADOS DE LOGIN (SIMULADO) =====
 const usuariosValidos = {
     'josepaulojunior@live.com': 'efaro2024', // Credenciais atualizadas!
-    'admin@email.com': 'admin123'
+    'josepaulojunior@live.com: 'efaro2026'
 };
 
 // ===== INICIALIZAÇÃO =====
@@ -136,7 +136,7 @@ function configurarEventos() {
 function carregarDados() {
     // ATENÇÃO: Verifique se o nome do arquivo Excel no seu repositório é 'dados.xlsx'
     // Se for 'base_dados.xlsx', você precisará mudar a URL abaixo.
-    const urlGithub = 'https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/main/dados.xlsx'; 
+    const urlGithub = 'https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/main/base_dados.xlsx'; 
     // Se o nome for 'base_dados.xlsx', mude para:
     // const urlGithub = 'https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/main/base_dados.xlsx';
 
@@ -725,3 +725,4 @@ function gerarRelatorio() {
     janela.document.close();
     janela.print();
 }
+
