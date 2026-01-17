@@ -134,11 +134,8 @@ function configurarEventos() {
 
 // ===== CARREGAR DADOS DO EXCEL =====
 function carregarDados() {
-    // ATENÇÃO: Verifique se o nome do arquivo Excel no seu repositório é 'dados.xlsx'
-    // Se for 'base_dados.xlsx', você precisará mudar a URL abaixo.
+    // URL CORRIGIDA para o seu arquivo base_dados.xlsx no GitHub
     const urlGithub = 'https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/main/base_dados.xlsx'; 
-    // Se o nome for 'base_dados.xlsx', mude para:
-    // const urlGithub = 'https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/main/base_dados.xlsx';
 
     fetch(urlGithub)
         .then(response => {
@@ -166,7 +163,7 @@ function carregarDados() {
         })
         .catch(error => {
             console.error('❌ Erro ao carregar dados do Excel:', error);
-            alert(`Erro ao carregar dados do Excel: ${error.message}. Verifique o console para mais detalhes.`);
+            alert(`Erro ao carregar dados do Excel: ${error.message}. Verifique o console (F12) para mais detalhes.`);
             carregarDadosDoLocalStorage(); // Tenta carregar do cache se falhar
         });
 }
@@ -179,6 +176,8 @@ function processarDados(jsonData) {
         let data;
         if (typeof dataValor === 'number') {
             // Se for um número (formato de data do Excel), converte
+            // Excel armazena datas como número de dias desde 1900-01-01 (ou 1899-12-31 para Mac)
+            // 25569 é o número de dias entre 1900-01-01 e 1970-01-01
             data = new Date(Math.round((dataValor - 25569) * 86400 * 1000));
         } else {
             data = new Date(dataValor);
@@ -725,6 +724,3 @@ function gerarRelatorio() {
     janela.document.close();
     janela.print();
 }
-
-
-
