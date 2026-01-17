@@ -506,7 +506,7 @@ h3 {
     height: 400px !important;
 }
 
-/* ===== TIMELINE (SURPRESA!) ===== */
+/* ===== TIMELINE ===== */
 .timeline-content {
     display: flex;
     flex-direction: column;
@@ -566,6 +566,7 @@ h3 {
     margin-top: 8px;
     font-size: 0.9em;
     font-weight: 600;
+    flex-wrap: wrap;
 }
 
 .timeline-he-50 {
@@ -757,146 +758,5 @@ table tbody tr.com-he {
     /* SIDEBAR */
     .sidebar {
         padding: 15px;
-        max-width: 100%;
-    }
+        max-width
 
-    .sidebar-section {
-        padding: 12px;
-        margin-bottom: 15px;
-    }
-
-    .sidebar-section h3 {
-        font-size: 1em;
-        margin-bottom: 10px;
-    }
-
-    /* CONTENT */
-    .content {
-        padding: 10px;
-    }
-
-    /* SECTIONS */
-    .chart-container,
-    .timeline-container,
-    .table-container {
-        padding: 12px;
-        margin-bottom: 15px;
-    }
-
-    .chart-container h2,
-    .timeline-container h2,
-    .table-container h2 {
-        font-size: 1.1em;
-        margin-bottom: 10px;
-    }
-
-    /* TABELA */
-    table {
-        font-size: 0.7em;
-    }
-
-    table th,
-    table td {
-        padding: 6px 3px;
-    }
-
-    /* GRÁFICO */
-    #heChart {
-        height: 250px !important;
-    }
-
-    /* STATS */
-    .stats {
-        grid-template-columns: 1fr;
-        gap: 8px;
-    }
-
-    .stat-item {
-        padding: 8px;
-    }
-
-    .stat-label {
-        font-size: 0.8em;
-    }
-
-    .stat-value {
-        font-size: 1em;
-    }
-
-    /* TIMELINE */
-    .timeline-item {
-        padding: 12px;
-        gap: 10px;
-    }
-
-    .timeline-dot {
-        width: 35px;
-        height: 35px;
-        font-size: 1em;
-    }
-
-    /* LOGIN */
-    .login-box {
-        padding: 25px;
-        width: 95%;
-    }
-
-    .login-header h1 {
-        font-size: 2em;
-    }
-
-    .form-group input {
-        padding: 10px 12px;
-        font-size: 16px;
-    }
-}
-
-/* ===== SCROLLBAR CUSTOMIZADO ===== */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: var(--bg-light);
-}
-
-::-webkit-scrollbar-thumb {
-    background: var(--primary-color);
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: var(--primary-dark);
-}
-
-/* ===== ANIMAÇÕES ===== */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
-}
-
-@keyframes slideInLeft {
-    from {
-        transform: translateX(-20px);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-.chart-container,
-.timeline-container,
-.table-container {
-    animation: fadeIn 0.5s ease-out;
-}
-
-table tbody tr {
-    animation: slideInLeft 0.3s ease-out;
-}
