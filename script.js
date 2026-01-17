@@ -7,7 +7,7 @@ let sidebarAberto = false;
 
 // ===== DADOS DE LOGIN (SIMULADO) =====
 const usuariosValidos = {
-    'jose@email.com': 'senha123',
+    'josepaulojunior@live.com': 'efaro2024', // Credenciais atualizadas!
     'admin@email.com': 'admin123'
 };
 
@@ -109,6 +109,23 @@ function configurarEventos() {
         }, 2000);
     });
 
+    // Relatório
+    document.getElementById('relatorioBtn')?.addEventListener('click', gerarRelatorio);
+
+    // Exportar
+    document.getElementById('exportarBtn')?.addEventListener('click', exportarDados);
+
+    // Importar
+    document.getElementById('importarBtn')?.addEventListener('click', () => {
+        document.getElementById('importarInput').click();
+    });
+
+    document.getElementById('importarInput')?.addEventListener('change', (e) => {
+        if (e.target.files[0]) {
+            importarDados(e.target.files[0]);
+        }
+    });
+
     // Carregar dark mode salvo
     if (localStorage.getItem('darkMode') === 'true') {
         document.body.classList.add('dark-mode');
@@ -117,10 +134,19 @@ function configurarEventos() {
 
 // ===== CARREGAR DADOS DO EXCEL =====
 function carregarDados() {
-    const urlGithub = 'https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/main/dados.xlsx';
+    // ATENÇÃO: Verifique se o nome do arquivo Excel no seu repositório é 'dados.xlsx'
+    // Se for 'base_dados.xlsx', você precisará mudar a URL abaixo.
+    const urlGithub = 'https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/main/dados.xlsx'; 
+    // Se o nome for 'base_dados.xlsx', mude para:
+    // const urlGithub = 'https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/main/base_dados.xlsx';
 
     fetch(urlGithub)
-        .then(response => response.arrayBuffer())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Erro HTTP! Status: ${response.status}. Verifique se o arquivo Excel existe na URL: ${urlGithub}`);
+            }
+            return response.arrayBuffer();
+        })
         .then(data => {
             const workbook = XLSX.read(data, { type: 'array' });
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -136,17 +162,28 @@ function carregarDados() {
             gerarGrafico();
             gerarTimeline();
             preencherTabela();
+            console.log('✅ Dados do Excel carregados e processados com sucesso!');
         })
         .catch(error => {
-            console.error('Erro ao carregar dados:', error);
-            carregarDadosDoLocalStorage();
+            console.error('❌ Erro ao carregar dados do Excel:', error);
+            alert(`Erro ao carregar dados do Excel: ${error.message}. Verifique o console para mais detalhes.`);
+            carregarDadosDoLocalStorage(); // Tenta carregar do cache se falhar
         });
 }
 
 // ===== PROCESSAR DADOS =====
 function processarDados(jsonData) {
     return jsonData.map(row => {
-        const data = new Date(row['Data']);
+        // Assegura que 'Data' é um formato que Date() pode entender
+        const dataValor = row['Data'];
+        let data;
+        if (typeof dataValor === 'number') {
+            // Se for um número (formato de data do Excel), converte
+            data = new Date(Math.round((dataValor - 25569) * 86400 * 1000));
+        } else {
+            data = new Date(dataValor);
+        }
+
         const entrada1 = row['Entrada 1'] ? converterParaHora(row['Entrada 1']) : null;
         const saida1 = row['Saída 1'] ? converterParaHora(row['Saída 1']) : null;
         const entrada2 = row['Entrada 2'] ? converterParaHora(row['Entrada 2']) : null;
@@ -166,12 +203,12 @@ function processarDados(jsonData) {
             totalHoras += horas2;
         }
 
-        const expediente = row['Expediente'] ? parseFloat(row['Expediente']) : 8;
+        const expediente = row['Expediente'] ? parseFloat(row['Expediente']) : 8; // Padrão 8 horas
         const horasExtras = Math.max(0, totalHoras - expediente);
 
         if (horasExtras > 0) {
-            he50 = Math.min(horasExtras, 2);
-            he100 = Math.max(0, horasExtras - 2);
+            he50 = Math.min(horasExtras, 2); // Até 2 horas de HE 50%
+            he100 = Math.max(0, horasExtras - 2); // O restante é HE 100%
         }
 
         return {
@@ -203,10 +240,12 @@ function converterParaHora(valor) {
     }
 
     if (typeof valor === 'number') {
+        // Se for um número (formato de hora do Excel), converte
+        const totalSegundos = Math.round(valor * 24 * 60 * 60);
+        const horas = Math.floor(totalSegundos / 3600);
+        const minutos = Math.floor((totalSegundos % 3600) / 60);
         const agora = new Date();
-        const hora = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
-        hora.setHours(0, 0, 0, 0);
-        hora.setTime(hora.getTime() + valor * 24 * 60 * 60 * 1000);
+        const hora = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), horas, minutos);
         return hora;
     }
 
@@ -223,13 +262,16 @@ function preencherSelectAno() {
     const anos = [...new Set(dadosOriginais.map(d => d.ano))].sort((a, b) => b - a);
     const selectAno = document.getElementById('filtroAno');
 
+    // Limpa opções existentes, exceto a primeira "Todos os anos"
+    while (selectAno.options.length > 1) {
+        selectAno.remove(1);
+    }
+
     anos.forEach(ano => {
-        if (!Array.from(selectAno.options).some(opt => opt.value === String(ano))) {
-            const option = document.createElement('option');
-            option.value = ano;
-            option.textContent = ano;
-            selectAno.appendChild(option);
-        }
+        const option = document.createElement('option');
+        option.value = ano;
+        option.textContent = ano;
+        selectAno.appendChild(option);
     });
 }
 
@@ -388,7 +430,7 @@ function gerarGrafico() {
     });
 }
 
-// ===== GERAR TIMELINE (SURPRESA!) =====
+// ===== GERAR TIMELINE =====
 function gerarTimeline() {
     const timelineContent = document.getElementById('timelineContent');
     timelineContent.innerHTML = '';
@@ -469,18 +511,22 @@ function preencherTabela() {
 // ===== ATUALIZAR DATA/HORA AUTOMATICAMENTE =====
 function atualizarDataHoraAutomaticamente() {
     setInterval(() => {
-        // Atualizar a cada minuto para manter datas/horas corretas
         if (usuarioLogado && dadosOriginais.length > 0) {
-            // Verificar se precisa atualizar dados (a cada hora)
             const ultimaAtualizacao = localStorage.getItem('ultimaAtualizacao');
             const agora = new Date().getTime();
 
-            if (!ultimaAtualizacao || agora - parseInt(ultimaAtualizacao) > 3600000) {
-                carregarDados();
-                localStorage.setItem('ultimaAtualizacao', agora.toString());
+            // Atualiza os dados do Excel a cada 1 hora se houver conexão
+            if (!ultimaAtualizacao || agora - parseInt(ultimaAtualizacao) > 3600000) { // 1 hora
+                if (navigator.onLine) {
+                    console.log('🔄 Verificando e atualizando dados do Excel (automático)...');
+                    carregarDados();
+                    localStorage.setItem('ultimaAtualizacao', agora.toString());
+                } else {
+                    console.log('Offline. Não é possível atualizar dados do Excel automaticamente.');
+                }
             }
         }
-    }, 60000); // A cada 1 minuto
+    }, 60000); // Verifica a cada 1 minuto
 }
 
 // ===== LOCAL STORAGE =====
@@ -497,15 +543,185 @@ function carregarDadosDoLocalStorage() {
             dadosFiltrados = [...dadosOriginais];
             preencherSelectAno();
             aplicarFiltros();
+            console.log('✅ Dados carregados do LocalStorage.');
         } catch (error) {
             console.error('Erro ao carregar dados do localStorage:', error);
         }
+    } else {
+        console.log('Nenhum dado encontrado no LocalStorage. Tentando carregar do GitHub.');
+        carregarDados(); // Tenta carregar do GitHub se não houver nada no LocalStorage
     }
 }
 
-// ===== SINCRONIZAÇÃO AUTOMÁTICA =====
+// ===== SINCRONIZAÇÃO AUTOMÁTICA (ADICIONAL) =====
+// Este intervalo garante que, mesmo que o Service Worker não ative o periodicSync,
+// os dados sejam verificados e atualizados a cada 5 minutos se online.
 setInterval(() => {
-    if (usuarioLogado) {
+    if (usuarioLogado && navigator.onLine) {
+        console.log('🔄 Sincronizando dados (intervalo de 5 minutos)...');
         carregarDados();
     }
 }, 300000); // A cada 5 minutos
+
+// ===== INTEGRAÇÃO COM SERVICE WORKER =====
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js')
+        .then((registration) => {
+            console.log('✅ Service Worker registrado com sucesso');
+
+            // Tenta registrar a sincronização periódica
+            if ('periodicSync' in registration) {
+                registration.periodicSync.register('sync-dados', {
+                    minInterval: 5 * 60 * 1000 // A cada 5 minutos
+                }).catch(() => {
+                    console.log('Sincronização periódica não disponível ou falhou o registro.');
+                });
+            }
+
+            // Ouvir mensagens do Service Worker
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                if (event.data.type === 'SYNC_COMPLETO') {
+                    console.log('✅ ' + event.data.mensagem);
+                    mostrarNotificacao('✅ Dados sincronizados com sucesso!');
+                    carregarDados(); // Recarrega os dados no dashboard após a sincronização do SW
+                }
+            });
+        })
+        .catch((error) => {
+            console.log('❌ Erro ao registrar Service Worker:', error);
+        });
+}
+
+// ===== NOTIFICAÇÕES =====
+function mostrarNotificacao(mensagem) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('Efaro Dashboard', {
+            body: mensagem,
+            icon: '📊'
+        });
+    }
+}
+
+// Solicitar permissão para notificações se ainda não foi dada
+if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+}
+
+// ===== DETECTAR MUDANÇA DE CONEXÃO =====
+window.addEventListener('online', () => {
+    console.log('✅ Conexão restaurada');
+    mostrarNotificacao('✅ Conexão restaurada! Sincronizando dados...');
+    carregarDados(); // Tenta recarregar os dados assim que a conexão é restaurada
+});
+
+window.addEventListener('offline', () => {
+    console.log('❌ Sem conexão');
+    mostrarNotificacao('❌ Sem conexão. Usando dados em cache.');
+});
+
+// ===== EXPORTAR DADOS =====
+function exportarDados() {
+    const dataStr = JSON.stringify(dadosFiltrados, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `efaro-dados-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    mostrarNotificacao('✅ Dados exportados com sucesso!');
+}
+
+// ===== IMPORTAR DADOS =====
+function importarDados(arquivo) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const dados = JSON.parse(e.target.result);
+            localStorage.setItem('dadosEfaro', JSON.stringify(dados));
+            carregarDadosDoLocalStorage();
+            mostrarNotificacao('✅ Dados importados com sucesso!');
+        } catch (error) {
+            mostrarNotificacao('❌ Erro ao importar dados');
+        }
+    };
+    reader.readAsText(arquivo);
+}
+
+// ===== GERAR RELATÓRIO =====
+function gerarRelatorio() {
+    const conteudo = `
+        <html>
+        <head>
+            <title>Relatório Efaro - ${new Date().toLocaleDateString('pt-BR')}</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; background: #f0f8f5; }
+                h1 { color: #2e7d32; }
+                table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
+                th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+                th { background-color: #2e7d32; color: white; font-weight: bold; }
+                tr:nth-child(even) { background-color: #f9f9f9; }
+                .resumo { background-color: #e8f5e9; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2e7d32; }
+                .resumo h2 { color: #2e7d32; margin-top: 0; }
+                .resumo p { margin: 8px 0; }
+            </style>
+        </head>
+        <body>
+            <h1>📊 Relatório de Horas Extras - Efaro Dashboard</h1>
+            <p><strong>Data do Relatório:</strong> ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}</p>
+            <p><strong>Usuário:</strong> ${usuarioLogado.nome}</p>
+
+            <div class="resumo">
+                <h2>Resumo Executivo</h2>
+                <p><strong>Total de Registros:</strong> ${dadosFiltrados.length}</p>
+                <p><strong>HE 50%:</strong> ${dadosFiltrados.reduce((sum, d) => sum + parseFloat(d.he50), 0).toFixed(1)}h</p>
+                <p><strong>HE 100%:</strong> ${dadosFiltrados.reduce((sum, d) => sum + parseFloat(d.he100), 0).toFixed(1)}h</p>
+                <p><strong>Total de HE:</strong> ${(dadosFiltrados.reduce((sum, d) => sum + parseFloat(d.he50) + parseFloat(d.he100), 0)).toFixed(1)}h</p>
+            </div>
+
+            <h2>Detalhes dos Registros</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Dia</th>
+                        <th>Entrada 1</th>
+                        <th>Saída 1</th>
+                        <th>Entrada 2</th>
+                        <th>Saída 2</th>
+                        <th>Total</th>
+                        <th>HE 50%</th>
+                        <th>HE 100%</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${dadosFiltrados.map(d => `
+                        <tr>
+                            <td>${d.dataFormatada}</td>
+                            <td>${d.dia}</td>
+                            <td>${d.entrada1}</td>
+                            <td>${d.saida1}</td>
+                            <td>${d.entrada2}</td>
+                            <td>${d.saida2}</td>
+                            <td>${d.totalHoras}h</td>
+                            <td>${d.he50}h</td>
+                            <td>${d.he100}h</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+
+            <div class="resumo" style="margin-top: 30px;">
+                <h2>Observações</h2>
+                <p>Este relatório foi gerado automaticamente pelo sistema Efaro Dashboard.</p>
+                <p>Para dúvidas ou esclarecimentos, entre em contato com o administrador.</p>
+            </div>
+        </body>
+        </html>
+    `;
+
+    const janela = window.open('', '', 'width=900,height=600');
+    janela.document.write(conteudo);
+    janela.document.close();
+    janela.print();
+}
