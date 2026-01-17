@@ -5,8 +5,11 @@ const urlsParaCache = [
     '/',
     '/index.html',
     '/styles.css',
-    '/script.js'
+    '/script.js',
     // Adicione aqui outros arquivos estáticos que você queira cachear
+    'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js', // Cachear a biblioteca XLSX
+    'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js', // Cachear a biblioteca Chart.js
+    'https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/main/base_dados.xlsx' // Cachear o arquivo Excel
 ];
 
 // ===== INSTALAR SERVICE WORKER =====
