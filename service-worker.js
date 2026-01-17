@@ -113,11 +113,8 @@ self.addEventListener('sync', (event) => {
 
 async function sincronizarDados() {
     try {
-        // ATENÇÃO: Verifique se o nome do arquivo Excel no seu repositório é 'dados.xlsx'
-        // Se for 'base_dados.xlsx', você precisará mudar a URL abaixo.
+        // URL CORRIGIDA para o seu arquivo base_dados.xlsx no GitHub
         const urlExcel = 'https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/main/base_dados.xlsx';
-        // Se o nome for 'base_dados.xlsx', mude para:
-        // const urlExcel = 'https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/main/base_dados.xlsx';
 
         const response = await fetch(urlExcel);
         if (response.ok) {
@@ -173,4 +170,3 @@ self.addEventListener('notificationclick', (event) => {
         })
     );
 });
-
