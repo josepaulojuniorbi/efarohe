@@ -8,7 +8,7 @@ let sidebarAberto = false;
 // ===== DADOS DE LOGIN (SIMULADO) =====
 const usuariosValidos = {
     'josepaulojunior@live.com': 'efaro2024', // Credenciais atualizadas!
-    'josepaulojunior@live.com: 'efaro2026'
+    'josepaulojunior@live.com': 'efaro2026'
 };
 
 // ===== INICIALIZAÇÃO =====
@@ -725,4 +725,5 @@ function gerarRelatorio() {
     janela.document.close();
     janela.print();
 }
+
 
