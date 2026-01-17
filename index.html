@@ -85,6 +85,18 @@
                 </div>
             </div>
 
+            <!-- ANÁLISE DETALHADA HE 50% -->
+            <div class="sidebar-section analise-section">
+                <h3>📊 HE 50%</h3>
+                <div id="analiseHE50" class="analise-content"></div>
+            </div>
+
+            <!-- ANÁLISE DETALHADA HE 100% -->
+            <div class="sidebar-section analise-section">
+                <h3>📊 HE 100%</h3>
+                <div id="analiseHE100" class="analise-content"></div>
+            </div>
+
             <!-- FILTROS -->
             <div class="sidebar-section filtros-container">
                 <h3>🔍 Filtros</h3>
@@ -119,20 +131,13 @@
                 <div class="registros-info" id="registrosFiltrados">0 registros</div>
             </div>
 
-            <!-- ANÁLISE DETALHADA -->
-            <div class="sidebar-section analise-section">
-                <h3>📊 HE 50%</h3>
-                <div id="analiseHE50" class="analise-content"></div>
-            </div>
-
-            <div class="sidebar-section analise-section">
-                <h3>📊 HE 100%</h3>
-                <div id="analiseHE100" class="analise-content"></div>
-            </div>
-
             <!-- AÇÕES -->
             <div class="sidebar-section">
                 <button id="refreshBtn" class="btn-action">🔄 Atualizar Dados</button>
+                <button id="relatorioBtn" class="btn-action">📄 Gerar Relatório</button>
+                <button id="exportarBtn" class="btn-action">💾 Exportar Dados</button>
+                <input type="file" id="importarInput" accept=".json" style="display: none;">
+                <button id="importarBtn" class="btn-action">📥 Importar Dados</button>
             </div>
         </aside>
 
@@ -144,7 +149,7 @@
                 <canvas id="heChart"></canvas>
             </section>
 
-            <!-- TIMELINE (SURPRESA!) -->
+            <!-- TIMELINE -->
             <section class="timeline-container">
                 <h2>⏱️ Timeline de Horas Extras</h2>
                 <div id="timelineContent" class="timeline-content"></div>
@@ -182,7 +187,6 @@
 
     <script src="script.js"></script>
     <script>
-        // Registrar Service Worker para sincronização offline
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('service-worker.js').catch(err => {
                 console.log('Service Worker não registrado:', err);
