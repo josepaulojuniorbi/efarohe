@@ -3,56 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Efaro Dashboard</title>
+    <title>Efaro Dashboard - Análise de Horas Extras</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
 </head>
 <body>
-    <!-- Tela de Login -->
-    <div id="loginScreen">
-        <h1>Efaro Dashboard</h1>
-        <form id="loginForm">
-            <label for="email">E-mail:</label>
-            <input type="email" id="email" required>
-            <label for="password">Senha:</label>
-            <input type="password" id="password" required>
-            <button type="submit">Entrar</button>
-        </form>
-        <p id="loginError" style="color: red; display: none;">E-mail ou senha inválidos!</p>
-        <div id="loadingMessage" style="display: none; color: #2e7d32; margin-top: 10px;">
-            Carregando dados...
+    <!-- TELA DE LOGIN -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-box">
+            <div class="login-header">
+                <h1>📊 Efaro Dashboard</h1>
+                <p>Análise Inteligente de Horas Extras</p>
+            </div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">E-mail</label>
+                    <input type="email" id="email" placeholder="seu@email.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Senha</label>
+                    <input type="password" id="password" placeholder="••••••••" required>
+                </div>
+
+                <button type="submit" class="btn-login">Entrar</button>
+
+                <div id="loginError" class="login-error" style="display: none;">
+                    ❌ E-mail ou senha inválidos!
+                </div>
+
+                <div id="loadingMessage" class="loading-message" style="display: none;">
+                    ⏳ Carregando dados...
+                </div>
+            </form>
         </div>
     </div>
 
-    <!-- Dashboard -->
-    <div id="dashboard" style="display: none;">
-        <div class="sidebar">
-            <h2>Bem-vindo, <span id="userName"></span></h2>
-            <div class="stats">
-                <div class="stat-item">
-                    <span class="stat-label">Total de Registros:</span>
-                    <span id="totalRegistros">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Total HE 50%:</span>
-                    <span id="totalHE50">0h</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Total HE 100%:</span>
-                    <span id="totalHE100">0h</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Total HE Geral:</span>
-                    <span id="totalHorasExtras">0h</span>
+    <!-- DASHBOARD -->
+    <div id="dashboard" class="dashboard" style="display: none;">
+        <!-- HEADER -->
+        <header class="header">
+            <div class="header-left">
+                <button id="toggleSidebar" class="btn-menu-mobile">☰</button>
+                <h1>📊 Efaro Dashboard</h1>
+            </div>
+            <div class="header-right">
+                <span id="userNameHeader" class="user-name"></span>
+                <button id="toggleDarkMode" class="btn-theme">🌙</button>
+                <button id="logoutBtn" class="btn-logout">🚪 Sair</button>
+            </div>
+        </header>
+
+        <!-- SIDEBAR -->
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h2>👤 <span id="userName"></span></h2>
+            </div>
+
+            <!-- ESTATÍSTICAS -->
+            <div class="sidebar-section">
+                <h3>📈 Resumo</h3>
+                <div class="stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Registros</span>
+                        <span class="stat-value" id="totalRegistros">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">HE 50%</span>
+                        <span class="stat-value" id="totalHE50">0h</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">HE 100%</span>
+                        <span class="stat-value" id="totalHE100">0h</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Total HE</span>
+                        <span class="stat-value" id="totalHorasExtras">0h</span>
+                    </div>
                 </div>
             </div>
-            
-            <!-- Filtros -->
-            <div class="filtros-container">
+
+            <!-- FILTROS -->
+            <div class="sidebar-section filtros-container">
                 <h3>🔍 Filtros</h3>
+
                 <div class="filtro-item">
-                    <label for="filtroMes">Mês:</label>
+                    <label for="filtroMes">Mês</label>
                     <select id="filtroMes">
                         <option value="">Todos os meses</option>
                         <option value="1">Janeiro</option>
@@ -69,49 +107,87 @@
                         <option value="12">Dezembro</option>
                     </select>
                 </div>
+
                 <div class="filtro-item">
-                    <label for="filtroAno">Ano:</label>
+                    <label for="filtroAno">Ano</label>
                     <select id="filtroAno">
-                        <!-- Preenchido dinamicamente -->
+                        <option value="">Todos os anos</option>
                     </select>
                 </div>
+
                 <button id="btnLimparFiltros" class="btn-limpar">🗑️ Limpar Filtros</button>
-                <div class="registros-info">
-                    <span id="registrosFiltrados">0 registros</span>
-                </div>
+                <div class="registros-info" id="registrosFiltrados">0 registros</div>
             </div>
-            
-            <button onclick="atualizarDados()">🔄 Atualizar Dados</button>
-            <button onclick="logout()">🚪 Sair</button>
-        </div>
-        <div class="content">
-            <h1>Dashboard de Horas Extras - <span id="userNameHeader"></span></h1>
-            
-            <div class="chart-container">
+
+            <!-- ANÁLISE DETALHADA -->
+            <div class="sidebar-section analise-section">
+                <h3>📊 HE 50%</h3>
+                <div id="analiseHE50" class="analise-content"></div>
+            </div>
+
+            <div class="sidebar-section analise-section">
+                <h3>📊 HE 100%</h3>
+                <div id="analiseHE100" class="analise-content"></div>
+            </div>
+
+            <!-- AÇÕES -->
+            <div class="sidebar-section">
+                <button id="refreshBtn" class="btn-action">🔄 Atualizar Dados</button>
+            </div>
+        </aside>
+
+        <!-- CONTEÚDO PRINCIPAL -->
+        <main class="content">
+            <!-- GRÁFICO -->
+            <section class="chart-container">
+                <h2>📈 Tendência de Horas Extras</h2>
                 <canvas id="heChart"></canvas>
-            </div>
-            
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Data</th>
-                            <th>Dia</th>
-                            <th>Entrada 1</th>
-                            <th>Saída 1</th>
-                            <th>Entrada 2</th>
-                            <th>Saída 2</th>
-                            <th>Expediente</th>
-                            <th>Total</th>
-                            <th>HE 50%</th>
-                            <th>HE 100%</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody"></tbody>
-                </table>
-            </div>
-        </div>
+            </section>
+
+            <!-- TIMELINE (SURPRESA!) -->
+            <section class="timeline-container">
+                <h2>⏱️ Timeline de Horas Extras</h2>
+                <div id="timelineContent" class="timeline-content"></div>
+            </section>
+
+            <!-- TABELA -->
+            <section class="table-container">
+                <h2>📋 Detalhes dos Registros</h2>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Dia</th>
+                                <th>Entrada 1</th>
+                                <th>Saída 1</th>
+                                <th>Entrada 2</th>
+                                <th>Saída 2</th>
+                                <th>Expediente</th>
+                                <th>Total</th>
+                                <th>HE 50%</th>
+                                <th>HE 100%</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <tr>
+                                <td colspan="10" style="text-align: center; padding: 20px;">Carregando...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
     </div>
+
     <script src="script.js"></script>
+    <script>
+        // Registrar Service Worker para sincronização offline
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js').catch(err => {
+                console.log('Service Worker não registrado:', err);
+            });
+        }
+    </script>
 </body>
 </html>
