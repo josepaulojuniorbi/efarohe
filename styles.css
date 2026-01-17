@@ -1,702 +1,902 @@
-// ===== VARIÁVEIS GLOBAIS =====
-let dadosOriginais = [];
-let dadosFiltrados = [];
-let usuarioLogado = null;
-let chart = null;
-let sidebarAberto = false;
+/* ===== VARIÁVEIS DE COR ===== */
+:root {
+    --primary-color: #2e7d32;
+    --primary-dark: #1b5e20;
+    --primary-light: #4caf50;
+    --secondary-color: #1976d2;
+    --success-color: #388e3c;
+    --warning-color: #f57c00;
+    --danger-color: #d32f2f;
+    --bg-light: #f0f8f5;
+    --bg-white: #ffffff;
+    --text-dark: #212121;
+    --text-light: #757575;
+    --border-color: #e0e0e0;
+    --shadow: 0 4px 15px rgba(0,0,0,0.1);
+    --shadow-lg: 0 8px 25px rgba(0,0,0,0.15);
+}
 
-// ===== DADOS DE LOGIN (SIMULADO) =====
-const usuariosValidos = {
-    'josepaulojunior@live.com': 'efaro2024', // Credenciais atualizadas!
-    'admin@email.com': 'admin123'
-};
+/* ===== DARK MODE ===== */
+body.dark-mode {
+    --bg-light: #121212;
+    --bg-white: #1e1e1e;
+    --text-dark: #e0e0e0;
+    --text-light: #b0b0b0;
+    --border-color: #333333;
+}
 
-// ===== INICIALIZAÇÃO =====
-document.addEventListener('DOMContentLoaded', () => {
-    verificarAutenticacao();
-    configurarEventos();
-    atualizarDataHoraAutomaticamente();
-    carregarDadosDoLocalStorage();
-});
+/* ===== RESET E BASE ===== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
-// ===== AUTENTICAÇÃO =====
-function verificarAutenticacao() {
-    const usuarioSalvo = localStorage.getItem('usuarioLogado');
-    if (usuarioSalvo) {
-        usuarioLogado = JSON.parse(usuarioSalvo);
-        mostrarDashboard();
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-light);
+    color: var(--text-dark);
+    transition: background-color 0.3s, color 0.3s;
+    line-height: 1.6;
+}
+
+/* ===== TIPOGRAFIA ===== */
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+h1 {
+    font-size: 2em;
+    color: var(--primary-color);
+}
+
+h2 {
+    font-size: 1.5em;
+    color: var(--primary-color);
+}
+
+h3 {
+    font-size: 1.2em;
+    color: var(--primary-color);
+}
+
+/* ===== LOGIN SCREEN ===== */
+.login-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+    padding: 20px;
+}
+
+.login-box {
+    background: var(--bg-white);
+    border-radius: 16px;
+    box-shadow: var(--shadow-lg);
+    padding: 40px;
+    width: 100%;
+    max-width: 400px;
+    animation: slideUp 0.5s ease-out;
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.login-header h1 {
+    font-size: 2.5em;
+    margin-bottom: 10px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+}
+
+.login-header p {
+    color: var(--text-light);
+    font-size: 1em;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--primary-color);
+    font-weight: 600;
+    font-size: 0.95em;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px 15px;
+    font-size: 16px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-white);
+    color: var(--text-dark);
+    transition: all 0.3s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+}
+
+.btn-login {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-bottom: 15px;
+}
+
+.btn-login:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(46, 125, 50, 0.3);
+}
+
+.btn-login:active {
+    transform: translateY(0);
+}
+
+.login-error {
+    background: #ffebee;
+    color: var(--danger-color);
+    padding: 12px;
+    border-radius: 8px;
+    text-align: center;
+    font-weight: 600;
+    margin-bottom: 15px;
+    border-left: 4px solid var(--danger-color);
+}
+
+.loading-message {
+    text-align: center;
+    color: var(--primary-color);
+    font-weight: 600;
+    padding: 10px;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 
-document.getElementById('loginForm')?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const email = document.getElementById('email').value;
-    const senha = document.getElementById('password').value;
-
-    document.getElementById('loadingMessage').style.display = 'block';
-    document.getElementById('loginError').style.display = 'none';
-
-    setTimeout(() => {
-        if (usuariosValidos[email] === senha) {
-            usuarioLogado = {
-                email: email,
-                nome: email.split('@')[0].toUpperCase()
-            };
-            localStorage.setItem('usuarioLogado', JSON.stringify(usuarioLogado));
-            document.getElementById('loginForm').reset();
-            mostrarDashboard();
-        } else {
-            document.getElementById('loginError').style.display = 'block';
-            document.getElementById('loadingMessage').style.display = 'none';
-        }
-    }, 1500);
-});
-
-function mostrarDashboard() {
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('dashboard').style.display = 'flex';
-    document.getElementById('userName').textContent = usuarioLogado.nome;
-    document.getElementById('userNameHeader').textContent = usuarioLogado.nome;
-    carregarDados();
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
 }
 
-// ===== CONFIGURAR EVENTOS =====
-function configurarEventos() {
-    // Menu mobile
-    document.getElementById('toggleSidebar')?.addEventListener('click', () => {
-        const sidebar = document.getElementById('sidebar');
-        sidebar.classList.toggle('active');
-        sidebarAberto = !sidebarAberto;
-    });
+/* ===== HEADER ===== */
+.header {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: white;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    gap: 15px;
+}
 
-    // Fechar sidebar ao clicar fora
-    document.addEventListener('click', (e) => {
-        const sidebar = document.getElementById('sidebar');
-        const toggleBtn = document.getElementById('toggleSidebar');
-        if (sidebarAberto && !sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
-            sidebar.classList.remove('active');
-            sidebarAberto = false;
-        }
-    });
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex: 1;
+}
 
-    // Dark mode
-    document.getElementById('toggleDarkMode')?.addEventListener('click', () => {
-        document.body.classList.toggle('dark-mode');
-        localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
-    });
+.header-left h1 {
+    color: white;
+    margin: 0;
+    font-size: 1.5em;
+}
 
-    // Logout
-    document.getElementById('logoutBtn')?.addEventListener('click', () => {
-        localStorage.removeItem('usuarioLogado');
-        localStorage.removeItem('darkMode');
-        document.getElementById('dashboard').style.display = 'none';
-        document.getElementById('loginScreen').style.display = 'flex';
-        usuarioLogado = null;
-        document.getElementById('loginForm').reset();
-    });
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
 
-    // Filtros
-    document.getElementById('filtroMes')?.addEventListener('change', aplicarFiltros);
-    document.getElementById('filtroAno')?.addEventListener('change', aplicarFiltros);
-    document.getElementById('btnLimparFiltros')?.addEventListener('click', limparFiltros);
+.user-name {
+    font-weight: 600;
+    font-size: 0.95em;
+    white-space: nowrap;
+}
 
-    // Atualizar dados
-    document.getElementById('refreshBtn')?.addEventListener('click', () => {
-        document.getElementById('refreshBtn').textContent = '⏳ Atualizando...';
-        carregarDados();
-        setTimeout(() => {
-            document.getElementById('refreshBtn').textContent = '🔄 Atualizar Dados';
-        }, 2000);
-    });
+.btn-menu-mobile {
+    display: none;
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border: none;
+    font-size: 1.5em;
+    cursor: pointer;
+    border-radius: 6px;
+    padding: 8px 12px;
+    transition: all 0.3s;
+}
 
-    // Relatório
-    document.getElementById('relatorioBtn')?.addEventListener('click', gerarRelatorio);
+.btn-menu-mobile:hover {
+    background: rgba(255,255,255,0.3);
+}
 
-    // Exportar
-    document.getElementById('exportarBtn')?.addEventListener('click', exportarDados);
+.btn-theme {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border: none;
+    font-size: 1.2em;
+    cursor: pointer;
+    border-radius: 6px;
+    padding: 8px 12px;
+    transition: all 0.3s;
+}
 
-    // Importar
-    document.getElementById('importarBtn')?.addEventListener('click', () => {
-        document.getElementById('importarInput').click();
-    });
+.btn-theme:hover {
+    background: rgba(255,255,255,0.3);
+}
 
-    document.getElementById('importarInput')?.addEventListener('change', (e) => {
-        if (e.target.files[0]) {
-            importarDados(e.target.files[0]);
-        }
-    });
+.btn-logout {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s;
+    white-space: nowrap;
+}
 
-    // Carregar dark mode salvo
-    if (localStorage.getItem('darkMode') === 'true') {
-        document.body.classList.add('dark-mode');
+.btn-logout:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+/* ===== SIDEBAR ===== */
+.sidebar {
+    width: 300px;
+    background: linear-gradient(180deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: white;
+    position: fixed;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 25px;
+    box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+    top: 0;
+    left: 0;
+    z-index: 99;
+}
+
+.sidebar-header {
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid rgba(255,255,255,0.2);
+}
+
+.sidebar-header h2 {
+    color: white;
+    margin: 0;
+    font-size: 1.3em;
+}
+
+.sidebar-section {
+    margin-bottom: 25px;
+    padding: 15px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 8px;
+    border-left: 4px solid rgba(255,255,255,0.3);
+}
+
+.sidebar-section h3 {
+    color: white;
+    margin: 0 0 15px 0;
+    font-size: 1.1em;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    padding-bottom: 8px;
+}
+
+/* ===== ESTATÍSTICAS ===== */
+.stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.stat-item {
+    background: rgba(255,255,255,0.1);
+    padding: 12px;
+    border-radius: 6px;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.85em;
+    opacity: 0.9;
+    margin-bottom: 5px;
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #4caf50;
+}
+
+/* ===== FILTROS ===== */
+.filtros-container {
+    background: rgba(255,255,255,0.1) !important;
+    border-left: 4px solid #4caf50 !important;
+}
+
+.filtro-item {
+    margin-bottom: 15px;
+}
+
+.filtro-item label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.9em;
+    opacity: 0.95;
+    font-weight: 500;
+}
+
+.filtro-item select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 6px;
+    background: rgba(255,255,255,0.1);
+    color: white;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.filtro-item select:hover {
+    background: rgba(255,255,255,0.15);
+    border-color: rgba(255,255,255,0.5);
+}
+
+.filtro-item select option {
+    background: var(--primary-color);
+    color: white;
+}
+
+.btn-limpar {
+    width: 100%;
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+    padding: 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 600;
+    margin-bottom: 10px;
+    transition: all 0.3s;
+}
+
+.btn-limpar:hover {
+    background: rgba(255,255,255,0.25);
+    border-color: rgba(255,255,255,0.5);
+}
+
+.registros-info {
+    text-align: center;
+    font-size: 0.8em;
+    opacity: 0.85;
+    padding: 8px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 4px;
+}
+
+/* ===== ANÁLISE DETALHADA ===== */
+.analise-section {
+    background: rgba(255,255,255,0.08) !important;
+}
+
+.analise-content {
+    font-size: 0.85em;
+    line-height: 1.6;
+    color: rgba(255,255,255,0.95);
+}
+
+.analise-content strong {
+    color: #4caf50;
+}
+
+/* ===== BOTÕES SIDEBAR ===== */
+.sidebar button {
+    width: 100%;
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.95em;
+    transition: all 0.3s;
+}
+
+.sidebar button:hover {
+    background: rgba(255,255,255,0.25);
+    border-color: rgba(255,255,255,0.4);
+    transform: translateX(5px);
+}
+
+.btn-action {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(56, 142, 60, 0.3)) !important;
+    border: 1px solid rgba(76, 175, 80, 0.5) !important;
+}
+
+.btn-action:hover {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.4), rgba(56, 142, 60, 0.4)) !important;
+}
+
+/* ===== CONTEÚDO PRINCIPAL ===== */
+.dashboard {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.content {
+    margin-left: 300px;
+    margin-top: 60px;
+    padding: 25px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* ===== SEÇÕES ===== */
+.chart-container,
+.timeline-container,
+.table-container {
+    background: var(--bg-white);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    margin-bottom: 25px;
+    padding: 25px;
+    transition: all 0.3s;
+}
+
+.chart-container:hover,
+.timeline-container:hover,
+.table-container:hover {
+    box-shadow: var(--shadow-lg);
+}
+
+.chart-container h2,
+.timeline-container h2,
+.table-container h2 {
+    margin-top: 0;
+}
+
+/* ===== GRÁFICO ===== */
+#heChart {
+    max-width: 100%;
+    height: 400px !important;
+}
+
+/* ===== TIMELINE ===== */
+.timeline-content {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.timeline-item {
+    display: flex;
+    gap: 15px;
+    padding: 15px;
+    background: var(--bg-light);
+    border-radius: 8px;
+    border-left: 4px solid var(--primary-color);
+    transition: all 0.3s;
+}
+
+.timeline-item:hover {
+    background: linear-gradient(90deg, var(--bg-light), rgba(46, 125, 50, 0.05));
+    transform: translateX(5px);
+}
+
+.timeline-dot {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 1.2em;
+}
+
+.timeline-content-item {
+    flex: 1;
+}
+
+.timeline-date {
+    font-weight: 600;
+    color: var(--primary-color);
+    font-size: 0.95em;
+}
+
+.timeline-info {
+    font-size: 0.85em;
+    color: var(--text-light);
+    margin-top: 5px;
+}
+
+.timeline-he {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+    font-size: 0.9em;
+    font-weight: 600;
+    flex-wrap: wrap;
+}
+
+.timeline-he-50 {
+    background: rgba(46, 125, 50, 0.2);
+    color: var(--primary-color);
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.timeline-he-100 {
+    background: rgba(76, 175, 80, 0.2);
+    color: var(--success-color);
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+/* ===== TABELA ===== */
+.table-wrapper {
+    overflow-x: auto;
+    border-radius: 8px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+table thead {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: white;
+    position: sticky;
+    top: 0;
+}
+
+table th {
+    padding: 15px 10px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.9em;
+    white-space: nowrap;
+}
+
+table td {
+    padding: 12px 10px;
+    text-align: center;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.9em;
+}
+
+table tbody tr {
+    transition: all 0.2s;
+}
+
+table tbody tr:nth-child(even) {
+    background: rgba(46, 125, 50, 0.02);
+}
+
+table tbody tr:hover {
+    background: rgba(46, 125, 50, 0.08);
+}
+
+table tbody tr.fim-semana {
+    background: rgba(25, 118, 210, 0.08);
+    font-weight: 600;
+}
+
+table tbody tr.com-he {
+    background: rgba(76, 175, 80, 0.08);
+}
+
+/* ===== RESPONSIVIDADE MOBILE ===== */
+@media (max-width: 1024px) {
+    .sidebar {
+        width: 280px;
+    }
+
+    .content {
+        margin-left: 280px;
+        padding: 20px;
+    }
+
+    .stats {
+        grid-template-columns: 1fr;
     }
 }
 
-// ===== CARREGAR DADOS DO EXCEL =====
-function carregarDados() {
-    const urlGithub = 'https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/main/dados.xlsx';
-
-    fetch(urlGithub)
-        .then(response => response.arrayBuffer())
-        .then(data => {
-            const workbook = XLSX.read(data, { type: 'array' });
-            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-            const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-            dadosOriginais = processarDados(jsonData);
-            dadosFiltrados = [...dadosOriginais];
-
-            salvarDadosNoLocalStorage();
-            preencherSelectAno();
-            aplicarFiltros();
-            atualizarEstatisticas();
-            gerarGrafico();
-            gerarTimeline();
-            preencherTabela();
-        })
-        .catch(error => {
-            console.error('Erro ao carregar dados:', error);
-            carregarDadosDoLocalStorage();
-        });
-}
-
-// ===== PROCESSAR DADOS =====
-function processarDados(jsonData) {
-    return jsonData.map(row => {
-        const data = new Date(row['Data']);
-        const entrada1 = row['Entrada 1'] ? converterParaHora(row['Entrada 1']) : null;
-        const saida1 = row['Saída 1'] ? converterParaHora(row['Saída 1']) : null;
-        const entrada2 = row['Entrada 2'] ? converterParaHora(row['Entrada 2']) : null;
-        const saida2 = row['Saída 2'] ? converterParaHora(row['Saída 2']) : null;
-
-        let totalHoras = 0;
-        let he50 = 0;
-        let he100 = 0;
-
-        if (entrada1 && saida1) {
-            const horas1 = calcularHoras(entrada1, saida1);
-            totalHoras += horas1;
-        }
-
-        if (entrada2 && saida2) {
-            const horas2 = calcularHoras(entrada2, saida2);
-            totalHoras += horas2;
-        }
-
-        const expediente = row['Expediente'] ? parseFloat(row['Expediente']) : 8;
-        const horasExtras = Math.max(0, totalHoras - expediente);
-
-        if (horasExtras > 0) {
-            he50 = Math.min(horasExtras, 2);
-            he100 = Math.max(0, horasExtras - 2);
-        }
-
-        return {
-            data: data,
-            dia: data.toLocaleDateString('pt-BR', { weekday: 'long' }),
-            entrada1: entrada1 ? entrada1.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '-',
-            saida1: saida1 ? saida1.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '-',
-            entrada2: entrada2 ? entrada2.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '-',
-            saida2: saida2 ? saida2.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '-',
-            expediente: expediente,
-            totalHoras: totalHoras.toFixed(2),
-            he50: he50.toFixed(2),
-            he100: he100.toFixed(2),
-            mes: data.getMonth() + 1,
-            ano: data.getFullYear(),
-            dataFormatada: data.toLocaleDateString('pt-BR')
-        };
-    });
-}
-
-function converterParaHora(valor) {
-    if (!valor) return null;
-
-    if (typeof valor === 'string') {
-        const [horas, minutos] = valor.split(':').map(Number);
-        const agora = new Date();
-        const hora = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), horas, minutos);
-        return hora;
+@media (max-width: 768px) {
+    /* HEADER */
+    .header {
+        flex-wrap: wrap;
+        padding: 12px 15px;
     }
 
-    if (typeof valor === 'number') {
-        const agora = new Date();
-        const hora = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
-        hora.setHours(0, 0, 0, 0);
-        hora.setTime(hora.getTime() + valor * 24 * 60 * 60 * 1000);
-        return hora;
+    .header-left h1 {
+        font-size: 1.2em;
     }
 
-    return null;
-}
-
-function calcularHoras(entrada, saida) {
-    const diferenca = saida - entrada;
-    return diferenca / (1000 * 60 * 60);
-}
-
-// ===== PREENCHER SELECT ANO =====
-function preencherSelectAno() {
-    const anos = [...new Set(dadosOriginais.map(d => d.ano))].sort((a, b) => b - a);
-    const selectAno = document.getElementById('filtroAno');
-
-    anos.forEach(ano => {
-        if (!Array.from(selectAno.options).some(opt => opt.value === String(ano))) {
-            const option = document.createElement('option');
-            option.value = ano;
-            option.textContent = ano;
-            selectAno.appendChild(option);
-        }
-    });
-}
-
-// ===== APLICAR FILTROS =====
-function aplicarFiltros() {
-    const mes = document.getElementById('filtroMes').value;
-    const ano = document.getElementById('filtroAno').value;
-
-    dadosFiltrados = dadosOriginais.filter(d => {
-        const mesMatch = !mes || d.mes === parseInt(mes);
-        const anoMatch = !ano || d.ano === parseInt(ano);
-        return mesMatch && anoMatch;
-    });
-
-    document.getElementById('registrosFiltrados').textContent = `${dadosFiltrados.length} registros`;
-    atualizarEstatisticas();
-    gerarGrafico();
-    gerarTimeline();
-    preencherTabela();
-}
-
-function limparFiltros() {
-    document.getElementById('filtroMes').value = '';
-    document.getElementById('filtroAno').value = '';
-    dadosFiltrados = [...dadosOriginais];
-    document.getElementById('registrosFiltrados').textContent = `${dadosFiltrados.length} registros`;
-    atualizarEstatisticas();
-    gerarGrafico();
-    gerarTimeline();
-    preencherTabela();
-}
-
-// ===== ATUALIZAR ESTATÍSTICAS =====
-function atualizarEstatisticas() {
-    const totalRegistros = dadosFiltrados.length;
-    const totalHE50 = dadosFiltrados.reduce((sum, d) => sum + parseFloat(d.he50), 0);
-    const totalHE100 = dadosFiltrados.reduce((sum, d) => sum + parseFloat(d.he100), 0);
-    const totalHE = totalHE50 + totalHE100;
-
-    document.getElementById('totalRegistros').textContent = totalRegistros;
-    document.getElementById('totalHE50').textContent = totalHE50.toFixed(1) + 'h';
-    document.getElementById('totalHE100').textContent = totalHE100.toFixed(1) + 'h';
-    document.getElementById('totalHorasExtras').textContent = totalHE.toFixed(1) + 'h';
-
-    // Análise detalhada HE 50%
-    const analiseHE50 = document.getElementById('analiseHE50');
-    analiseHE50.innerHTML = `
-        <strong>Total:</strong> ${totalHE50.toFixed(1)}h<br>
-        <strong>Média:</strong> ${(totalHE50 / (totalRegistros || 1)).toFixed(1)}h<br>
-        <strong>Registros:</strong> ${dadosFiltrados.filter(d => parseFloat(d.he50) > 0).length}
-    `;
-
-    // Análise detalhada HE 100%
-    const analiseHE100 = document.getElementById('analiseHE100');
-    analiseHE100.innerHTML = `
-        <strong>Total:</strong> ${totalHE100.toFixed(1)}h<br>
-        <strong>Média:</strong> ${(totalHE100 / (totalRegistros || 1)).toFixed(1)}h<br>
-        <strong>Registros:</strong> ${dadosFiltrados.filter(d => parseFloat(d.he100) > 0).length}
-    `;
-}
-
-// ===== GERAR GRÁFICO =====
-function gerarGrafico() {
-    const ctx = document.getElementById('heChart');
-    if (!ctx) return;
-
-    // Agrupar por data
-    const dadosPorData = {};
-    dadosFiltrados.forEach(d => {
-        if (!dadosPorData[d.dataFormatada]) {
-            dadosPorData[d.dataFormatada] = { he50: 0, he100: 0 };
-        }
-        dadosPorData[d.dataFormatada].he50 += parseFloat(d.he50);
-        dadosPorData[d.dataFormatada].he100 += parseFloat(d.he100);
-    });
-
-    const labels = Object.keys(dadosPorData).sort();
-    const dataHE50 = labels.map(label => dadosPorData[label].he50);
-    const dataHE100 = labels.map(label => dadosPorData[label].he100);
-
-    if (chart) {
-        chart.destroy();
+    .btn-menu-mobile {
+        display: block;
     }
 
-    chart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [
-                {
-                    label: 'HE 50%',
-                    data: dataHE50,
-                    backgroundColor: 'rgba(46, 125, 50, 0.7)',
-                    borderColor: 'rgba(46, 125, 50, 1)',
-                    borderWidth: 2,
-                    borderRadius: 6,
-                    hoverBackgroundColor: 'rgba(46, 125, 50, 0.9)'
-                },
-                {
-                    label: 'HE 100%',
-                    data: dataHE100,
-                    backgroundColor: 'rgba(76, 175, 80, 0.7)',
-                    borderColor: 'rgba(76, 175, 80, 1)',
-                    borderWidth: 2,
-                    borderRadius: 6,
-                    hoverBackgroundColor: 'rgba(76, 175, 80, 0.9)'
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'top',
-                    labels: {
-                        font: { size: 12, weight: 'bold' },
-                        padding: 15,
-                        usePointStyle: true
-                    }
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(0,0,0,0.8)',
-                    padding: 12,
-                    titleFont: { size: 12, weight: 'bold' },
-                    bodyFont: { size: 11 },
-                    borderColor: 'rgba(255,255,255,0.2)',
-                    borderWidth: 1,
-                    displayColors: true,
-                    callbacks: {
-                        label: function(context) {
-                            return context.dataset.label + ': ' + context.parsed.y.toFixed(1) + 'h';
-                        }
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function(value) {
-                            return value.toFixed(1) + 'h';
-                        }
-                    },
-                    grid: {
-                        color: 'rgba(0,0,0,0.05)'
-                    }
-                },
-                x: {
-                    grid: {
-                        display: false
-                    }
-                }
-            }
-        }
-    });
-}
-
-// ===== GERAR TIMELINE =====
-function gerarTimeline() {
-    const timelineContent = document.getElementById('timelineContent');
-    timelineContent.innerHTML = '';
-
-    if (dadosFiltrados.length === 0) {
-        timelineContent.innerHTML = '<p style="text-align: center; color: var(--text-light);">Nenhum registro encontrado</p>';
-        return;
+    .user-name {
+        display: none;
     }
 
-    // Ordenar por data descendente
-    const dadosOrdenados = [...dadosFiltrados].sort((a, b) => b.data - a.data);
-
-    dadosOrdenados.forEach((d, index) => {
-        const totalHE = parseFloat(d.he50) + parseFloat(d.he100);
-
-        const timelineItem = document.createElement('div');
-        timelineItem.className = 'timeline-item';
-        timelineItem.innerHTML = `
-            <div class="timeline-dot">📅</div>
-            <div class="timeline-content-item">
-                <div class="timeline-date">${d.dataFormatada} - ${d.dia}</div>
-                <div class="timeline-info">
-                    Total: <strong>${d.totalHoras}h</strong> | 
-                    Expediente: <strong>${d.expediente}h</strong>
-                </div>
-                <div class="timeline-he">
-                    ${parseFloat(d.he50) > 0 ? `<span class="timeline-he-50">HE 50%: ${d.he50}h</span>` : ''}
-                    ${parseFloat(d.he100) > 0 ? `<span class="timeline-he-100">HE 100%: ${d.he100}h</span>` : ''}
-                    ${totalHE === 0 ? '<span style="color: var(--text-light);">Sem HE</span>' : ''}
-                </div>
-            </div>
-        `;
-        timelineContent.appendChild(timelineItem);
-    });
-}
-
-// ===== PREENCHER TABELA =====
-function preencherTabela() {
-    const tableBody = document.getElementById('tableBody');
-    tableBody.innerHTML = '';
-
-    if (dadosFiltrados.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 20px;">Nenhum registro encontrado</td></tr>';
-        return;
+    /* SIDEBAR */
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        width: 100%;
+        max-width: 280px;
+        z-index: 1000;
     }
 
-    dadosFiltrados.forEach(d => {
-        const tr = document.createElement('tr');
+    .sidebar.active {
+        transform: translateX(0);
+    }
 
-        // Detectar fim de semana
-        const diaSemana = d.data.getDay();
-        if (diaSemana === 0 || diaSemana === 6) {
-            tr.classList.add('fim-semana');
-        }
+    /* CONTENT */
+    .content {
+        margin-left: 0;
+        margin-top: 60px;
+        padding: 15px;
+    }
 
-        // Detectar com HE
-        const totalHE = parseFloat(d.he50) + parseFloat(d.he100);
-        if (totalHE > 0) {
-            tr.classList.add('com-he');
-        }
+    /* SECTIONS */
+    .chart-container,
+    .timeline-container,
+    .table-container {
+        padding: 15px;
+        margin-bottom: 20px;
+    }
 
-        tr.innerHTML = `
-            <td>${d.dataFormatada}</td>
-            <td>${d.dia.charAt(0).toUpperCase() + d.dia.slice(1)}</td>
-            <td>${d.entrada1}</td>
-            <td>${d.saida1}</td>
-            <td>${d.entrada2}</td>
-            <td>${d.saida2}</td>
-            <td>${d.expediente}h</td>
-            <td><strong>${d.totalHoras}h</strong></td>
-            <td style="color: var(--primary-color); font-weight: 600;">${d.he50}h</td>
-            <td style="color: var(--success-color); font-weight: 600;">${d.he100}h</td>
-        `;
-        tableBody.appendChild(tr);
-    });
-}
+    .chart-container h2,
+    .timeline-container h2,
+    .table-container h2 {
+        font-size: 1.2em;
+    }
 
-// ===== ATUALIZAR DATA/HORA AUTOMATICAMENTE =====
-function atualizarDataHoraAutomaticamente() {
-    setInterval(() => {
-        if (usuarioLogado && dadosOriginais.length > 0) {
-            const ultimaAtualizacao = localStorage.getItem('ultimaAtualizacao');
-            const agora = new Date().getTime();
+    /* TABELA */
+    table {
+        font-size: 0.8em;
+    }
 
-            if (!ultimaAtualizacao || agora - parseInt(ultimaAtualizacao) > 3600000) {
-                carregarDados();
-                localStorage.setItem('ultimaAtualizacao', agora.toString());
-            }
-        }
-    }, 60000);
-}
+    table th,
+    table td {
+        padding: 8px 5px;
+    }
 
-// ===== LOCAL STORAGE =====
-function salvarDadosNoLocalStorage() {
-    localStorage.setItem('dadosEfaro', JSON.stringify(dadosOriginais));
-    localStorage.setItem('ultimaAtualizacao', new Date().getTime().toString());
-}
+    /* GRÁFICO */
+    #heChart {
+        height: 300px !important;
+    }
 
-function carregarDadosDoLocalStorage() {
-    const dadosSalvos = localStorage.getItem('dadosEfaro');
-    if (dadosSalvos) {
-        try {
-            dadosOriginais = JSON.parse(dadosSalvos);
-            dadosFiltrados = [...dadosOriginais];
-            preencherSelectAno();
-            aplicarFiltros();
-        } catch (error) {
-            console.error('Erro ao carregar dados do localStorage:', error);
-        }
+    /* STATS */
+    .stats {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .stat-item {
+        padding: 10px;
+    }
+
+    .stat-value {
+        font-size: 1.1em;
     }
 }
 
-// ===== SINCRONIZAÇÃO AUTOMÁTICA =====
-setInterval(() => {
-    if (usuarioLogado) {
-        carregarDados();
+@media (max-width: 480px) {
+    /* HEADER */
+    .header {
+        padding: 10px 12px;
     }
-}, 300000);
 
-// ===== INTEGRAÇÃO COM SERVICE WORKER =====
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('service-worker.js')
-        .then((registration) => {
-            console.log('✅ Service Worker registrado com sucesso');
+    .header-left h1 {
+        font-size: 1em;
+    }
 
-            if ('periodicSync' in registration) {
-                registration.periodicSync.register('sync-dados', {
-                    minInterval: 5 * 60 * 1000
-                }).catch(() => {
-                    console.log('Sincronização periódica não disponível');
-                });
-            }
+    .header-right {
+        gap: 8px;
+    }
 
-            navigator.serviceWorker.addEventListener('message', (event) => {
-                if (event.data.type === 'SYNC_COMPLETO') {
-                    console.log('✅ ' + event.data.mensagem);
-                    mostrarNotificacao('✅ Dados sincronizados com sucesso!');
-                }
-            });
-        })
-        .catch((error) => {
-            console.log('❌ Erro ao registrar Service Worker:', error);
-        });
-}
+    .btn-logout {
+        padding: 6px 10px;
+        font-size: 0.85em;
+    }
 
-// ===== NOTIFICAÇÕES =====
-function mostrarNotificacao(mensagem) {
-    if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification('Efaro Dashboard', {
-            body: mensagem,
-            icon: '📊'
-        });
+    /* SIDEBAR */
+    .sidebar {
+        padding: 15px;
+        max-width: 100%;
+    }
+
+    .sidebar-section {
+        padding: 12px;
+        margin-bottom: 15px;
+    }
+
+    .sidebar-section h3 {
+        font-size: 1em;
+        margin-bottom: 10px;
+    }
+
+    /* CONTENT */
+    .content {
+        padding: 10px;
+    }
+
+    /* SECTIONS */
+    .chart-container,
+    .timeline-container,
+    .table-container {
+        padding: 12px;
+        margin-bottom: 15px;
+    }
+
+    .chart-container h2,
+    .timeline-container h2,
+    .table-container h2 {
+        font-size: 1.1em;
+        margin-bottom: 10px;
+    }
+
+    /* TABELA */
+    table {
+        font-size: 0.7em;
+    }
+
+    table th, table td {
+        padding: 6px 3px;
+    }
+
+    /* GRÁFICO */
+    #heChart {
+        height: 250px !important;
+    }
+
+    /* STATS */
+    .stats {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .stat-item {
+        padding: 8px;
+    }
+
+    .stat-label {
+        font-size: 0.8em;
+    }
+
+    .stat-value {
+        font-size: 1em;
+    }
+
+    /* TIMELINE */
+    .timeline-item {
+        padding: 12px;
+        gap: 10px;
+    }
+
+    .timeline-dot {
+        width: 35px;
+        height: 35px;
+        font-size: 1em;
+    }
+
+    /* LOGIN */
+    .login-box {
+        padding: 25px;
+        width: 95%;
+    }
+
+    .login-header h1 {
+        font-size: 2em;
+    }
+
+    .form-group input {
+        padding: 10px 12px;
+        font-size: 16px;
     }
 }
 
-if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
+/* ===== SCROLLBAR CUSTOMIZADO ===== */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
 }
 
-// ===== DETECTAR MUDANÇA DE CONEXÃO =====
-window.addEventListener('online', () => {
-    console.log('✅ Conexão restaurada');
-    mostrarNotificacao('✅ Conexão restaurada! Sincronizando dados...');
-    carregarDados();
-});
+::-webkit-scrollbar-track {
+    background: var(--bg-light);
+}
 
-window.addEventListener('offline', () => {
-    console.log('❌ Sem conexão');
-    mostrarNotificacao('❌ Sem conexão. Usando dados em cache.');
-});
+::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 4px;
+}
 
-// ===== SINCRONIZAÇÃO AUTOMÁTICA MELHORADA =====
-let ultimaSincronizacao = localStorage.getItem('ultimaSincronizacao');
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
+}
 
-function verificarNecessidadeSincronizacao() {
-    const agora = new Date().getTime();
-    const umHora = 60 * 60 * 1000;
-
-    if (!ultimaSincronizacao || agora - parseInt(ultimaSincronizacao) > umHora) {
-        if (navigator.onLine) {
-            carregarDados();
-            localStorage.setItem('ultimaSincronizacao', agora.toString());
-        }
+/* ===== ANIMAÇÕES ===== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
     }
 }
 
-setInterval(verificarNecessidadeSincronizacao, 5 * 60 * 1000);
-
-// ===== EXPORTAR DADOS =====
-function exportarDados() {
-    const dataStr = JSON.stringify(dadosFiltrados, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `efaro-dados-${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-    mostrarNotificacao('✅ Dados exportados com sucesso!');
+@keyframes slideInLeft {
+    from {
+        transform: translateX(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
 }
 
-// ===== IMPORTAR DADOS =====
-function importarDados(arquivo) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            const dados = JSON.parse(e.target.result);
-            localStorage.setItem('dadosEfaro', JSON.stringify(dados));
-            carregarDadosDoLocalStorage();
-            mostrarNotificacao('✅ Dados importados com sucesso!');
-        } catch (error) {
-            mostrarNotificacao('❌ Erro ao importar dados');
-        }
-    };
-    reader.readAsText(arquivo);
+.chart-container,
+.timeline-container,
+.table-container {
+    animation: fadeIn 0.5s ease-out;
 }
 
-// ===== GERAR RELATÓRIO =====
-function gerarRelatorio() {
-    const conteudo = `
-        <html>
-        <head>
-            <title>Relatório Efaro - ${new Date().toLocaleDateString('pt-BR')}</title>
-            <style>
-                body { font-family: Arial, sans-serif; margin: 20px; background: #f0f8f5; }
-                h1 { color: #2e7d32; }
-                table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
-                th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-                th { background-color: #2e7d32; color: white; font-weight: bold; }
-                tr:nth-child(even) { background-color: #f9f9f9; }
-                .resumo { background-color: #e8f5e9; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2e7d32; }
-                .resumo h2 { color: #2e7d32; margin-top: 0; }
-                .resumo p { margin: 8px 0; }
-            </style>
-        </head>
-        <body>
-            <h1>📊 Relatório de Horas Extras - Efaro Dashboard</h1>
-            <p><strong>Data do Relatório:</strong> ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}</p>
-            <p><strong>Usuário:</strong> ${usuarioLogado.nome}</p>
-
-            <div class="resumo">
-                <h2>Resumo Executivo</h2>
-                <p><strong>Total de Registros:</strong> ${dadosFiltrados.length}</p>
-                <p><strong>HE 50%:</strong> ${dadosFiltrados.reduce((sum, d) => sum + parseFloat(d.he50), 0).toFixed(1)}h</p>
-                <p><strong>HE 100%:</strong> ${dadosFiltrados.reduce((sum, d) => sum + parseFloat(d.he100), 0).toFixed(1)}h</p>
-                <p><strong>Total de HE:</strong> ${(dadosFiltrados.reduce((sum, d) => sum + parseFloat(d.he50) + parseFloat(d.he100), 0)).toFixed(1)}h</p>
-            </div>
-
-            <h2>Detalhes dos Registros</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Data</th>
-                        <th>Dia</th>
-                        <th>Entrada 1</th>
-                        <th>Saída 1</th>
-                        <th>Entrada 2</th>
-                        <th>Saída 2</th>
-                        <th>Total</th>
-                        <th>HE 50%</th>
-                        <th>HE 100%</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${dadosFiltrados.map(d => `
-                        <tr>
-                            <td>${d.dataFormatada}</td>
-                            <td>${d.dia}</td>
-                            <td>${d.entrada1}</td>
-                            <td>${d.saida1}</td>
-                            <td>${d.entrada2}</td>
-                            <td>${d.saida2}</td>
-                            <td>${d.totalHoras}h</td>
-                            <td>${d.he50}h</td>
-                            <td>${d.he100}h</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-
-            <div class="resumo" style="margin-top: 30px;">
-                <h2>Observações</h2>
-                <p>Este relatório foi gerado automaticamente pelo sistema Efaro Dashboard.</p>
-                <p>Para dúvidas ou esclarecimentos, entre em contato com o administrador.</p>
-            </div>
-        </body>
-        </html>
-    `;
-
-    const janela = window.open('', '', 'width=900,height=600');
-    janela.document.write(conteudo);
-    janela.document.close();
-    janela.print();
+table tbody tr {
+    animation: slideInLeft 0.3s ease-out;
 }
