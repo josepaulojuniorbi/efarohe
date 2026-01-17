@@ -169,4 +169,6 @@ self.addEventListener('notificationclick', (event) => {
             }
         })
     );
+    // Adicione um console.log para depuração
+    console.log('Notificação clicada, tentando abrir/focar janela.');
 });
