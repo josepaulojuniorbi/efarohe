@@ -1,86 +1,83 @@
-// script.js
-
 // =================================================================================
-// VARIÁVEIS GLOBAIS E CONFIGURAÇÕES
+// VARIÁVEIS GLOBAIS E SELETORES DE ELEMENTOS
 // =================================================================================
-const URL_EXCEL = 'https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/main/base_dados.xlsx';
-const USUARIOS_AUTORIZADOS = [
-    { email: 'josepaulojunior@live.com', senha: 'efaro2024', nome: 'José Paulo Júnior' }
-];
-
-let todosDados = []; // Armazena todos os dados do Excel
-let dadosFiltrados = []; // Armazena os dados após a aplicação dos filtros
-let heChartInstance = null; // Instância do Chart.js para o gráfico de HE
-
 const loginScreen = document.getElementById('loginScreen');
 const dashboard = document.getElementById('dashboard');
 const loginForm = document.getElementById('loginForm');
 const loginError = document.getElementById('loginError');
 const loadingMessage = document.getElementById('loadingMessage');
 const logoutBtn = document.getElementById('logoutBtn');
-const userName = document.getElementById('userName');
-const userNameHeader = document.getElementById('userNameHeader');
-const toggleDarkModeBtn = document.getElementById('toggleDarkMode');
-const toggleSidebarBtn = document.getElementById('toggleSidebar');
-const sidebar = document.getElementById('sidebar');
-const currentDateTimeSpan = document.getElementById('currentDateTime');
-
-// Elementos do Dashboard
+const userNameSpan = document.getElementById('userName');
+const userNameHeaderSpan = document.getElementById('userNameHeader');
 const totalRegistrosSpan = document.getElementById('totalRegistros');
 const totalHE50Span = document.getElementById('totalHE50');
 const totalHE100Span = document.getElementById('totalHE100');
 const totalHorasExtrasSpan = document.getElementById('totalHorasExtras');
 const analiseHE50Div = document.getElementById('analiseHE50');
 const analiseHE100Div = document.getElementById('analiseHE100');
-const heChartCanvas = document.getElementById('heChart');
-const heTimelineDiv = document.getElementById('heTimeline');
-const dataTableBody = document.querySelector('#dataTable tbody');
 const filterMonthSelect = document.getElementById('filterMonth');
 const filterYearSelect = document.getElementById('filterYear');
 const applyFiltersBtn = document.getElementById('applyFilters');
 const clearFiltersBtn = document.getElementById('clearFilters');
 const generateReportBtn = document.getElementById('generateReportBtn');
+const currentDateTimeSpan = document.getElementById('currentDateTime');
+const heChartCanvas = document.getElementById('heChart');
+const heTimelineDiv = document.getElementById('heTimeline');
+const dataTableBody = document.querySelector('#dataTable tbody');
+const toggleDarkModeBtn = document.getElementById('toggleDarkMode');
+const toggleSidebarBtn = document.getElementById('toggleSidebar');
+const sidebar = document.getElementById('sidebar');
+
+
+let todosDados = []; // Armazena todos os dados do Excel
+let dadosFiltrados = []; // Armazena os dados após a aplicação dos filtros
+let heChartInstance = null; // Instância do Chart.js para o gráfico
+
+// URL CORRIGIDA para o seu arquivo base_dados.xlsx no GitHub
+const urlExcel = 'https://raw.githubusercontent.com/josepaulojuniorbi/efarohe/main/base_dados.xlsx';
+
+// Credenciais de login (apenas para demonstração)
+const USUARIOS = [
+    { email: 'josepaulojunior@live.com', senha: 'efaro2024', nome: 'José Paulo Júnior' }
+];
 
 // =================================================================================
 // FUNÇÕES DE AUTENTICAÇÃO
 // =================================================================================
 
 /**
- * Verifica se o usuário está autenticado.
- * Se sim, mostra o dashboard. Se não, mostra a tela de login.
+ * Verifica se o usuário está autenticado ao carregar a página.
  */
 function verificarAutenticacao() {
-    const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado'));
+    const usuarioLogado = localStorage.getItem('usuarioLogado');
     if (usuarioLogado) {
-        mostrarDashboard(usuarioLogado);
+        mostrarDashboard(JSON.parse(usuarioLogado));
     } else {
         mostrarLogin();
     }
 }
 
 /**
- * Exibe a tela de login e esconde o dashboard.
+ * Exibe a tela de login.
  */
 function mostrarLogin() {
     loginScreen.style.display = 'flex';
     dashboard.style.display = 'none';
     loginError.style.display = 'none';
     loadingMessage.style.display = 'none';
-    document.body.classList.remove('dark-mode'); // Garante que o dark mode não esteja ativo na tela de login
-    localStorage.removeItem('darkMode');
 }
 
 /**
- * Exibe o dashboard e esconde a tela de login.
- * @param {object} usuario - Objeto com os dados do usuário logado.
+ * Exibe o dashboard e carrega os dados.
+ * @param {object} usuario - O objeto do usuário logado.
  */
 async function mostrarDashboard(usuario) {
     loginScreen.style.display = 'none';
     dashboard.style.display = 'grid';
-    userName.textContent = usuario.nome;
-    userNameHeader.textContent = usuario.nome;
+    userNameSpan.textContent = usuario.nome;
+    userNameHeaderSpan.textContent = usuario.nome;
 
-    // Aplica o dark mode se estiver salvo
+    // Aplica o tema escuro se estiver salvo
     if (localStorage.getItem('darkMode') === 'enabled') {
         document.body.classList.add('dark-mode');
         toggleDarkModeBtn.textContent = '☀️';
@@ -89,48 +86,41 @@ async function mostrarDashboard(usuario) {
         toggleDarkModeBtn.textContent = '🌙';
     }
 
-    // Carrega os dados do Excel
-    loadingMessage.style.display = 'block'; // Mostra mensagem de carregamento
-    loadingMessage.textContent = '⏳ Carregando dados...';
     try {
+        loadingMessage.style.display = 'block'; // Mostra mensagem de carregamento
         await carregarDados();
-        popularFiltrosAno(); // Popula os anos após carregar os dados
-        aplicarFiltros(); // Aplica os filtros iniciais (todos os dados)
+        popularFiltrosAno();
+        aplicarFiltros(); // Aplica filtros iniciais (todos os dados)
         loadingMessage.style.display = 'none'; // Esconde mensagem de carregamento
     } catch (error) {
         console.error('Erro ao carregar dados:', error);
-        loadingMessage.textContent = '❌ Erro ao carregar dados. Verifique sua conexão ou o arquivo Excel.';
-        loadingMessage.style.color = 'var(--error-color)';
+        alert('Erro ao carregar dados. Verifique sua conexão ou o arquivo Excel.');
+        loadingMessage.style.display = 'none'; // Esconde mensagem de carregamento
+        // Opcional: Voltar para a tela de login ou exibir uma mensagem de erro mais proeminente
     }
 }
 
 /**
  * Lida com o envio do formulário de login.
- * @param {Event} event - O evento de envio do formulário.
+ * @param {Event} event - O evento de submit.
  */
-async function handleLogin(event) {
+function handleLogin(event) {
     event.preventDefault();
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
 
-    const usuario = USUARIOS_AUTORIZADOS.find(
-        u => u.email === email && u.senha === password
-    );
+    const usuario = USUARIOS.find(u => u.email === email && u.senha === password);
 
     if (usuario) {
-        loginError.style.display = 'none';
-        loadingMessage.style.display = 'block';
-        loadingMessage.textContent = '⏳ Autenticando e carregando dados...';
         localStorage.setItem('usuarioLogado', JSON.stringify(usuario));
-        await mostrarDashboard(usuario);
+        mostrarDashboard(usuario);
     } else {
         loginError.style.display = 'block';
-        loadingMessage.style.display = 'none';
     }
 }
 
 /**
- * Realiza o logout do usuário.
+ * Lida com o logout do usuário.
  */
 function handleLogout() {
     localStorage.removeItem('usuarioLogado');
@@ -143,13 +133,13 @@ function handleLogout() {
 
 /**
  * Carrega os dados do arquivo Excel.
- * @returns {Promise<void>} Uma promessa que resolve quando os dados são carregados.
  */
 async function carregarDados() {
+    console.log('Tentando carregar dados...');
     try {
-        const response = await fetch(URL_EXCEL);
+        const response = await fetch(urlExcel);
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            throw new Error(`Erro HTTP: ${response.status} - ${response.statusText}`);
         }
         const arrayBuffer = await response.arrayBuffer();
         const workbook = XLSX.read(arrayBuffer, { type: 'array' });
@@ -157,96 +147,85 @@ async function carregarDados() {
         const worksheet = workbook.Sheets[sheetName];
         const json = XLSX.utils.sheet_to_json(worksheet);
 
-        todosDados = json.map(row => {
-            // Converte a data do formato numérico do Excel para Date object
-            const dataExcel = row['Data'];
-            const dataObj = new Date(Math.round((dataExcel - 25569) * 86400 * 1000)); // Ajuste para fuso horário
-
-            // Formata a data para exibição
-            const dataFormatada = dataObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-            const mes = dataObj.getMonth() + 1; // Mês de 1 a 12
-            const ano = dataObj.getFullYear();
-            const diaSemana = dataObj.toLocaleDateString('pt-BR', { weekday: 'long' });
-
-            // Funções auxiliares para converter horas e calcular diferenças
-            const parseTime = (timeStr) => {
-                if (!timeStr) return null;
-                const [hours, minutes] = timeStr.split(':').map(Number);
-                return hours * 60 + minutes; // Retorna em minutos
-            };
-
-            const formatMinutesToHours = (totalMinutes) => {
-                if (totalMinutes === null) return '0.0';
-                const hours = Math.floor(totalMinutes / 60);
-                const minutes = totalMinutes % 60;
-                return `${hours}.${(minutes / 60 * 10).toFixed(0)}`; // Formato H.X
-            };
-
-            const calculateDuration = (start, end) => {
-                if (!start || !end) return 0;
-                const startMinutes = parseTime(start);
-                const endMinutes = parseTime(end);
-                return endMinutes - startMinutes;
-            };
-
-            const entrada1 = row['Entrada 1'] ? new Date(row['Entrada 1'] * 24 * 60 * 60 * 1000).toISOString().substr(11, 5) : '';
-            const saida1 = row['Saída 1'] ? new Date(row['Saída 1'] * 24 * 60 * 60 * 1000).toISOString().substr(11, 5) : '';
-            const entrada2 = row['Entrada 2'] ? new Date(row['Entrada 2'] * 24 * 60 * 60 * 1000).toISOString().substr(11, 5) : '';
-            const saida2 = row['Saída 2'] ? new Date(row['Saída 2'] * 24 * 60 * 60 * 1000).toISOString().substr(11, 5) : '';
-
-            const periodo1Min = calculateDuration(entrada1, saida1);
-            const periodo2Min = calculateDuration(entrada2, saida2);
-            const totalTrabalhadoMin = periodo1Min + periodo2Min;
-
-            // Expediente esperado (8h48m = 528 minutos)
-            const expedienteEsperadoMin = 528; 
-            let he50Min = 0;
-            let he100Min = 0;
-
-            if (totalTrabalhadoMin > expedienteEsperadoMin) {
-                let horasExtrasMin = totalTrabalhadoMin - expedienteEsperadoMin;
-
-                // Finais de semana (Sábado e Domingo)
-                if (dataObj.getDay() === 0 || dataObj.getDay() === 6) { // 0 = Domingo, 6 = Sábado
-                    he100Min = horasExtrasMin; // Todas as horas extras no fim de semana são 100%
-                } else {
-                    // Dias de semana: 2h a 50%, o restante a 100%
-                    const limiteHE50Min = 120; // 2 horas
-                    if (horasExtrasMin <= limiteHE50Min) {
-                        he50Min = horasExtrasMin;
-                    } else {
-                        he50Min = limiteHE50Min;
-                        he100Min = horasExtrasMin - limiteHE50Min;
-                    }
-                }
-            }
-
-            return {
-                data: dataObj,
-                dataFormatada: dataFormatada,
-                mes: mes,
-                ano: ano,
-                dia: diaSemana,
-                entrada1: entrada1,
-                saida1: saida1,
-                entrada2: entrada2,
-                saida2: saida2,
-                expediente: formatMinutesToHours(expedienteEsperadoMin),
-                totalHoras: formatMinutesToHours(totalTrabalhadoMin),
-                he50: formatMinutesToHours(he50Min),
-                he100: formatMinutesToHours(he100Min),
-                totalHE: formatMinutesToHours(he50Min + he100Min)
-            };
-        });
-
-        // Ordena os dados pela data mais recente primeiro
-        todosDados.sort((a, b) => b.data.getTime() - a.data.getTime());
-
-        console.log('Dados do Excel carregados e processados:', todosDados);
+        todosDados = processarDados(json);
+        console.log('Dados carregados e processados:', todosDados);
     } catch (error) {
         console.error('Erro ao carregar ou processar o arquivo Excel:', error);
-        throw error; // Re-lança o erro para ser tratado por quem chamou
+        throw new Error('Falha ao carregar ou processar o arquivo Excel.');
     }
+}
+
+/**
+ * Processa os dados brutos do Excel para um formato utilizável.
+ * @param {Array<object>} dadosBrutos - Os dados lidos diretamente do Excel.
+ * @returns {Array<object>} Os dados processados.
+ */
+function processarDados(dadosBrutos) {
+    return dadosBrutos.map(row => {
+        const dataExcel = new Date((row.Data - (25567 + 2)) * 86400 * 1000); // Ajuste para data do Excel
+        const dataFormatada = dataExcel.toLocaleDateString('pt-BR');
+        const diaSemana = dataExcel.toLocaleDateString('pt-BR', { weekday: 'long' });
+
+        // Função auxiliar para converter tempo (HH:MM) para horas decimais
+        const tempoParaDecimal = (tempo) => {
+            if (!tempo) return 0;
+            const [horas, minutos] = tempo.split(':').map(Number);
+            return horas + minutos / 60;
+        };
+
+        // Função auxiliar para formatar horas decimais para HH:MM
+        const formatarHoras = (horasDecimais) => {
+            if (isNaN(horasDecimais) || horasDecimais < 0) return '00:00';
+            const horas = Math.floor(horasDecimais);
+            const minutos = Math.round((horasDecimais - horas) * 60);
+            return `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`;
+        };
+
+        const entrada1Decimal = tempoParaDecimal(row['Entrada 1']);
+        const saida1Decimal = tempoParaDecimal(row['Saída 1']);
+        const entrada2Decimal = tempoParaDecimal(row['Entrada 2']);
+        const saida2Decimal = tempoParaDecimal(row['Saída 2']);
+
+        // Cálculo do total de horas trabalhadas
+        let totalTrabalhadoDecimal = 0;
+        if (saida1Decimal && entrada1Decimal) {
+            totalTrabalhadoDecimal += (saida1Decimal - entrada1Decimal);
+        }
+        if (saida2Decimal && entrada2Decimal) {
+            totalTrabalhadoDecimal += (saida2Decimal - entrada2Decimal);
+        }
+
+        // Expediente padrão (8 horas)
+        const expedientePadrao = 8;
+        let he50Decimal = 0;
+        let he100Decimal = 0;
+
+        if (totalTrabalhadoDecimal > expedientePadrao) {
+            const horasExtras = totalTrabalhadoDecimal - expedientePadrao;
+            // Simplificação: todas as horas extras são 50% por padrão,
+            // a menos que haja uma lógica específica para 100% (ex: domingos/feriados)
+            // Para este exemplo, vamos considerar que o Excel já separa HE50 e HE100
+            he50Decimal = tempoParaDecimal(row['HE 50%']) || 0;
+            he100Decimal = tempoParaDecimal(row['HE 100%']) || 0;
+        }
+
+        return {
+            data: dataExcel,
+            dataFormatada: dataFormatada,
+            dia: diaSemana,
+            mes: dataExcel.getMonth() + 1, // Mês de 1 a 12
+            ano: dataExcel.getFullYear(),
+            entrada1: row['Entrada 1'] || '00:00',
+            saida1: row['Saída 1'] || '00:00',
+            entrada2: row['Entrada 2'] || '00:00',
+            saida2: row['Saída 2'] || '00:00',
+            expediente: row['Expediente'] || '00:00', // Manter como string se for do Excel
+            totalHoras: formatarHoras(totalTrabalhadoDecimal),
+            he50: formatarHoras(he50Decimal),
+            he100: formatarHoras(he100Decimal),
+            totalHE: formatarHoras(he50Decimal + he100Decimal) // Total de horas extras em decimal
+        };
+    });
 }
 
 // =================================================================================
@@ -254,57 +233,36 @@ async function carregarDados() {
 // =================================================================================
 
 /**
- * Atualiza todos os elementos do dashboard com base nos dados filtrados.
+ * Atualiza todos os componentes do dashboard com base nos dados filtrados.
  */
 function atualizarDashboard() {
-    if (!dadosFiltrados || dadosFiltrados.length === 0) {
+    if (dadosFiltrados.length === 0) {
         totalRegistrosSpan.textContent = '0';
         totalHE50Span.textContent = '0h';
         totalHE100Span.textContent = '0h';
         totalHorasExtrasSpan.textContent = '0h';
-        analiseHE50Div.innerHTML = '<p>Nenhum dado para HE 50%.</p>';
-        analiseHE100Div.innerHTML = '<p>Nenhum dado para HE 100%.</p>';
-        heTimelineDiv.innerHTML = '<p>Nenhum dado para timeline.</p>';
-        dataTableBody.innerHTML = '<tr><td colspan="9">Nenhum registro encontrado para os filtros aplicados.</td></tr>';
+        analiseHE50Div.innerHTML = '<p>Nenhum dado disponível.</p>';
+        analiseHE100Div.innerHTML = '<p>Nenhum dado disponível.</p>';
         renderizarGrafico([]);
+        renderizarTimeline([]);
+        preencherTabela([]);
         return;
     }
 
-    // Calcular totais
     const totalRegistros = dadosFiltrados.length;
-    const totalHE50 = dadosFiltrados.reduce((sum, item) => sum + parseFloat(item.he50), 0);
-    const totalHE100 = dadosFiltrados.reduce((sum, item) => sum + parseFloat(item.he100), 0);
-    const totalHorasExtras = totalHE50 + totalHE100;
+    const totalHE50 = dadosFiltrados.reduce((sum, d) => sum + parseFloat(d.he50), 0).toFixed(1);
+    const totalHE100 = dadosFiltrados.reduce((sum, d) => sum + parseFloat(d.he100), 0).toFixed(1);
+    const totalHorasExtras = (parseFloat(totalHE50) + parseFloat(totalHE100)).toFixed(1);
 
-    // Atualizar estatísticas
     totalRegistrosSpan.textContent = totalRegistros;
-    totalHE50Span.textContent = `${totalHE50.toFixed(1)}h`;
-    totalHE100Span.textContent = `${totalHE100.toFixed(1)}h`;
-    totalHorasExtrasSpan.textContent = `${totalHorasExtras.toFixed(1)}h`;
+    totalHE50Span.textContent = `${totalHE50}h`;
+    totalHE100Span.textContent = `${totalHE100}h`;
+    totalHorasExtrasSpan.textContent = `${totalHorasExtras}h`;
 
-    // Análise Detalhada HE 50%
-    const topHE50 = dadosFiltrados.filter(d => parseFloat(d.he50) > 0)
-                                  .sort((a, b) => parseFloat(b.he50) - parseFloat(a.he50))
-                                  .slice(0, 3);
-    analiseHE50Div.innerHTML = topHE50.length > 0
-        ? topHE50.map(d => `<p>${d.dataFormatada}: <strong>${d.he50}h</strong></p>`).join('')
-        : '<p>Nenhum registro de HE 50%.</p>';
-
-    // Análise Detalhada HE 100%
-    const topHE100 = dadosFiltrados.filter(d => parseFloat(d.he100) > 0)
-                                   .sort((a, b) => parseFloat(b.he100) - parseFloat(a.he100))
-                                   .slice(0, 3);
-    analiseHE100Div.innerHTML = topHE100.length > 0
-        ? topHE100.map(d => `<p>${d.dataFormatada}: <strong>${d.he100}h</strong></p>`).join('')
-        : '<p>Nenhum registro de HE 100%.</p>';
-
-    // Renderizar Gráfico
+    renderizarAnaliseHE50(dadosFiltrados);
+    renderizarAnaliseHE100(dadosFiltrados);
     renderizarGrafico(dadosFiltrados);
-
-    // Renderizar Timeline
     renderizarTimeline(dadosFiltrados);
-
-    // Preencher Tabela
     preencherTabela(dadosFiltrados);
 }
 
@@ -313,60 +271,51 @@ function atualizarDashboard() {
  * @param {Array<object>} dados - Os dados a serem usados no gráfico.
  */
 function renderizarGrafico(dados) {
-    const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-    const hePorMes = new Array(12).fill(0);
-    const he50PorMes = new Array(12).fill(0);
-    const he100PorMes = new Array(12).fill(0);
-
-    dados.forEach(item => {
-        const mesIndex = item.mes - 1; // Mês é 1-12, array é 0-11
-        hePorMes[mesIndex] += parseFloat(item.totalHE);
-        he50PorMes[mesIndex] += parseFloat(item.he50);
-        he100PorMes[mesIndex] += parseFloat(item.he100);
-    });
-
     if (heChartInstance) {
         heChartInstance.destroy(); // Destrói a instância anterior do gráfico
     }
 
+    const horasPorMes = dados.reduce((acc, item) => {
+        const mesAno = `${item.mes}/${item.ano}`;
+        acc[mesAno] = (acc[mesAno] || 0) + parseFloat(item.he50) + parseFloat(item.he100);
+        return acc;
+    }, {});
+
+    const labels = Object.keys(horasPorMes).sort((a, b) => {
+        const [mA, aA] = a.split('/').map(Number);
+        const [mB, aB] = b.split('/').map(Number);
+        if (aA !== aB) return aA - aB;
+        return mA - mB;
+    });
+    const data = labels.map(label => horasPorMes[label].toFixed(1));
+
     heChartInstance = new Chart(heChartCanvas, {
         type: 'bar',
         data: {
-            labels: meses,
-            datasets: [
-                {
-                    label: 'HE 50%',
-                    data: he50PorMes.map(h => h.toFixed(1)),
-                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
-                    borderColor: 'rgba(75, 192, 192, 1)',
-                    borderWidth: 1
-                },
-                {
-                    label: 'HE 100%',
-                    data: he100PorMes.map(h => h.toFixed(1)),
-                    backgroundColor: 'rgba(255, 99, 132, 0.6)',
-                    borderColor: 'rgba(255, 99, 132, 1)',
-                    borderWidth: 1
-                }
-            ]
+            labels: labels,
+            datasets: [{
+                label: 'Total de Horas Extras',
+                data: data,
+                backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                x: {
-                    stacked: true,
-                    title: {
-                        display: true,
-                        text: 'Mês'
-                    }
-                },
                 y: {
-                    stacked: true,
                     beginAtZero: true,
                     title: {
                         display: true,
                         text: 'Horas Extras (h)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Mês/Ano'
                     }
                 }
             },
@@ -388,6 +337,46 @@ function renderizarGrafico(dados) {
             }
         }
     });
+}
+
+/**
+ * Renderiza a análise detalhada de HE 50%.
+ * @param {Array<object>} dados - Os dados a serem usados na análise.
+ */
+function renderizarAnaliseHE50(dados) {
+    analiseHE50Div.innerHTML = '';
+    const topHE50 = dados.filter(d => parseFloat(d.he50) > 0)
+                         .sort((a, b) => parseFloat(b.he50) - parseFloat(a.he50))
+                         .slice(0, 3); // Top 3
+
+    if (topHE50.length > 0) {
+        analiseHE50Div.innerHTML += '<p><strong>Maiores HE 50%:</strong></p>';
+        topHE50.forEach(d => {
+            analiseHE50Div.innerHTML += `<p>${d.dataFormatada}: ${d.he50}h</p>`;
+        });
+    } else {
+        analiseHE50Div.innerHTML += '<p>Nenhuma HE 50% registrada.</p>';
+    }
+}
+
+/**
+ * Renderiza a análise detalhada de HE 100%.
+ * @param {Array<object>} dados - Os dados a serem usados na análise.
+ */
+function renderizarAnaliseHE100(dados) {
+    analiseHE100Div.innerHTML = '';
+    const topHE100 = dados.filter(d => parseFloat(d.he100) > 0)
+                          .sort((a, b) => parseFloat(b.he100) - parseFloat(a.he100))
+                          .slice(0, 3); // Top 3
+
+    if (topHE100.length > 0) {
+        analiseHE100Div.innerHTML += '<p><strong>Maiores HE 100%:</strong></p>';
+        topHE100.forEach(d => {
+            analiseHE100Div.innerHTML += `<p>${d.dataFormatada}: ${d.he100}h</p>`;
+        });
+    } else {
+        analiseHE100Div.innerHTML += '<p>Nenhuma HE 100% registrada.</p>';
+    }
 }
 
 /**
@@ -608,8 +597,9 @@ function generateReport() {
 }
 
 // =================================================================================
-// REGISTRO DO SERVICE WORKER
+// REGISTRO DO SERVICE WORKER (DESATIVADO TEMPORARIAMENTE)
 // =================================================================================
+/*
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('/service-worker.js')
@@ -631,7 +621,7 @@ if ('serviceWorker' in navigator) {
         }
     });
 }
-
+*/
 
 // =================================================================================
 // EVENT LISTENERS
