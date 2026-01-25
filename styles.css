@@ -388,44 +388,41 @@ button:hover {
 }
 
 .timeline-item-date {
-    position: absolute;
-    top: 15px;
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
+    width: 80px;
+    height: 80px;
     background-color: var(--primary-color);
     color: white;
+    border-radius: 50%;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    font-size: 1.1rem;
+    font-size: 1.5rem;
     font-weight: bold;
-    z-index: 1;
+    position: absolute;
+    left: 50%;
+    top: 0;
+    transform: translateX(-50%);
     box-shadow: var(--shadow-color) 0px 2px 5px;
-}
-
-.timeline-item:nth-child(even) .timeline-item-date {
-    left: calc(50% - 50px);
-}
-
-.timeline-item:nth-child(odd) .timeline-item-date {
-    right: calc(50% - 50px);
+    z-index: 1;
 }
 
 .timeline-item-date span {
     font-size: 0.8rem;
     font-weight: normal;
+    line-height: 1.2;
+    text-align: center;
 }
 
 .timeline-item-content h4 {
+    color: var(--primary-color);
     margin-bottom: 5px;
-    color: var(--accent-color);
 }
 
 .timeline-item-content p {
     font-size: 0.9rem;
     color: var(--text-light-color);
+    margin-bottom: 3px;
 }
 
 /* Tabela */
@@ -436,8 +433,7 @@ button:hover {
 #dataTable {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 15px;
-    font-size: 0.9rem;
+    margin-top: 10px;
 }
 
 #dataTable th,
@@ -445,6 +441,7 @@ button:hover {
     border: 1px solid var(--border-color);
     padding: 12px 15px;
     text-align: left;
+    font-size: 0.9rem;
 }
 
 #dataTable th {
@@ -483,15 +480,18 @@ button:hover {
     transition: background-color 0.3s ease;
 }
 
+.login-header {
+    margin-bottom: 30px;
+}
+
 .login-header h1 {
     color: var(--primary-color);
-    margin-bottom: 10px;
     font-size: 2rem;
+    margin-bottom: 10px;
 }
 
 .login-header p {
     color: var(--text-light-color);
-    margin-bottom: 30px;
     font-size: 1rem;
 }
 
@@ -521,7 +521,7 @@ button:hover {
 
 .form-group input[type="email"]:focus,
 .form-group input[type="password"]:focus {
-    border-color: var(--accent-color);
+    border-color: var(--primary-color);
     outline: none;
 }
 
@@ -542,50 +542,57 @@ button:hover {
 }
 
 .login-error, .loading-message {
-    color: var(--error-color);
     margin-top: 20px;
+    padding: 10px;
+    border-radius: 5px;
     font-weight: bold;
     font-size: 0.9rem;
 }
 
+.login-error {
+    background-color: #ffebee;
+    color: var(--error-color);
+    border: 1px solid var(--error-color);
+}
+
 .loading-message {
+    background-color: #e3f2fd;
     color: var(--info-color);
+    border: 1px solid var(--info-color);
 }
 
 /* Responsividade */
 @media (max-width: 768px) {
     .dashboard {
-        grid-template-columns: 1fr; /* Sidebar ocupa toda a largura */
+        grid-template-columns: 1fr; /* Apenas uma coluna */
         grid-template-rows: auto 1fr;
     }
 
     .sidebar {
         position: fixed;
         top: 0;
-        left: 0;
-        width: 250px;
+        left: -250px; /* Escondido por padrão */
         height: 100%;
-        transform: translateX(-100%); /* Esconde a sidebar */
         z-index: 1001;
-        box-shadow: var(--shadow-color) 4px 0px 8px;
+        box-shadow: var(--shadow-color) 2px 0px 8px;
+        transform: translateX(0); /* Reseta para o estado inicial */
     }
 
     .sidebar.active {
-        transform: translateX(0); /* Mostra a sidebar */
-    }
-
-    .content {
-        grid-column: 1;
-        grid-row: 2;
-        padding-top: 80px; /* Espaço para o header fixo */
+        transform: translateX(250px); /* Mostra a sidebar */
     }
 
     .header {
         grid-column: 1;
-        position: fixed;
-        width: 100%;
-        top: 0;
-        left: 0;
+    }
+
+    .content {
+        grid-column: 1;
+        padding: 15px;
+    }
+
+    .btn-menu-mobile {
+        display: flex; /* Mostra o botão de menu em mobile */
     }
 
     .header-left h1 {
@@ -593,78 +600,32 @@ button:hover {
         margin-left: 10px;
     }
 
-    .btn-menu-mobile {
-        display: flex; /* Mostra o botão de menu */
-    }
-
     .timeline::before {
-        left: 15px; /* Ajusta a linha central para a esquerda */
+        left: 10px; /* Move a linha central para a esquerda */
     }
 
     .timeline-item {
-        flex-direction: column;
+        flex-direction: column; /* Empilha os itens */
         align-items: flex-start;
     }
 
-    .timeline-item:nth-child(odd) {
-        flex-direction: column; /* Também para odd */
-    }
-
     .timeline-item-content {
-        width: calc(100% - 40px); /* Ajusta largura */
-        margin-left: 40px; /* Espaço para a linha e o círculo */
+        width: 100%;
+        margin-left: 20px; /* Espaço para a linha */
     }
 
     .timeline-item-content::after {
-        left: -10px;
-        border-width: 10px 10px 10px 0;
-        border-color: transparent var(--background-color) transparent transparent;
+        display: none; /* Remove a seta */
     }
 
     .timeline-item-date {
-        left: 0 !important;
-        top: 0;
-        width: 30px;
-        height: 30px;
-        font-size: 0.8rem;
-        line-height: 1;
-        padding: 5px;
+        left: 10px;
+        transform: translateX(-50%);
+        margin-top: 0;
+        top: 20px;
     }
 
-    .timeline-item-date span {
-        display: none; /* Esconde o ano/mês para economizar espaço */
-    }
-}
-
-@media (max-width: 480px) {
-    .login-box {
-        padding: 25px;
-        margin: 0 15px;
-    }
-
-    .login-header h1 {
-        font-size: 1.8rem;
-    }
-
-    .header-left h1 {
-        font-size: 1.1rem;
-    }
-
-    .stats {
-        grid-template-columns: 1fr; /* Uma coluna em telas muito pequenas */
-    }
-
-    .card {
-        padding: 15px;
-    }
-
-    .card h2 {
-        font-size: 1.2rem;
-    }
-
-    #dataTable th,
-    #dataTable td {
-        padding: 8px 10px;
-        font-size: 0.8rem;
+    .timeline-item:nth-child(odd) {
+        flex-direction: column; /* Garante que a ordem seja a mesma */
     }
 }
