@@ -128,39 +128,46 @@
                     </select>
                 </div>
 
-                <button id="btnLimparFiltros" class="btn-limpar">🗑️ Limpar Filtros</button>
-                <div class="registros-info" id="registrosFiltrados">0 registros</div>
+                <button id="limparFiltrosBtn" class="btn-secondary">🗑️ Limpar Filtros</button>
+                <span id="registrosFiltrados" class="registros-filtrados">0 registros</span>
             </div>
 
             <!-- AÇÕES -->
-            <div class="sidebar-section">
-                <button id="refreshBtn" class="btn-action">🔄 Atualizar Dados</button>
-                <button id="relatorioBtn" class="btn-action">📄 Gerar Relatório</button>
-                <button id="exportarBtn" class="btn-action">💾 Exportar Dados</button>
-                <input type="file" id="importarInput" accept=".json" style="display: none;">
-                <button id="importarBtn" class="btn-action">📥 Importar Dados</button>
+            <div class="sidebar-section acoes-container">
+                <h3>⚙️ Ações</h3>
+                <button id="exportarExcelBtn" class="btn-primary">⬇️ Exportar Excel</button>
+                <button id="imprimirRelatorioBtn" class="btn-primary">🖨️ Imprimir Relatório</button>
+                <button id="importarDadosBtn" class="btn-primary">⬆️ Importar Dados</button>
+                <input type="file" id="importarInput" accept=".xlsx, .xls" style="display: none;">
+            </div>
+
+            <div class="sidebar-footer">
+                <p>Última atualização: <span id="ultimaAtualizacao"></span></p>
+                <p>Hora atual: <span id="horaAtual"></span></p>
             </div>
         </aside>
 
         <!-- CONTEÚDO PRINCIPAL -->
         <main class="content">
-            <!-- GRÁFICO -->
-            <section class="chart-container">
-                <h2>📈 Tendência de Horas Extras</h2>
+            <!-- GRÁFICO DE HORAS EXTRAS -->
+            <section class="chart-container card">
+                <h2>Gráfico de Horas Extras por Mês</h2>
                 <canvas id="heChart"></canvas>
             </section>
 
-            <!-- TIMELINE -->
-            <section class="timeline-container">
-                <h2>⏱️ Timeline de Horas Extras</h2>
-                <div id="timelineContent" class="timeline-content"></div>
+            <!-- TIMELINE DE HORAS EXTRAS -->
+            <section class="timeline-container card">
+                <h2>⏰ Timeline de Horas Extras</h2>
+                <div id="timeline" class="timeline">
+                    <!-- A timeline será gerada aqui pelo JavaScript -->
+                </div>
             </section>
 
-            <!-- TABELA -->
-            <section class="table-container">
-                <h2>📋 Detalhes dos Registros</h2>
-                <div class="table-wrapper">
-                    <table>
+            <!-- DETALHES DOS REGISTROS -->
+            <section class="table-container card">
+                <h2>🗓️ Detalhes dos Registros</h2>
+                <div class="table-responsive">
+                    <table id="heTable">
                         <thead>
                             <tr>
                                 <th>Data</th>
@@ -175,10 +182,8 @@
                                 <th>HE 100%</th>
                             </tr>
                         </thead>
-                        <tbody id="tableBody">
-                            <tr>
-                                <td colspan="10" style="text-align: center; padding: 20px;">Carregando...</td>
-                            </tr>
+                        <tbody>
+                            <tr><td colspan="10" style="text-align: center;">Carregando...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -186,11 +191,14 @@
         </main>
     </div>
 
+    <!-- Script principal -->
     <script src="script.js"></script>
+    <!-- Registro do Service Worker -->
     <script>
-        // Registrar Service Worker para sincronização offline
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('service-worker.js').catch(err => {
+            navigator.serviceWorker.register('service-worker.js').then(reg => {
+                console.log('Service Worker registrado com sucesso:', reg);
+            }).catch(err => {
                 console.log('Service Worker não registrado:', err);
             });
         }
