@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Efaro Dashboard - Análise de Horas Extras</title>
     <link rel="stylesheet" href="styles.css">
-    <!-- IMPORTANTE: Certifique-se de que estes scripts estão carregando corretamente -->
+    <!-- ESTES SCRIPT SÃO CRUCIAIS E PRECISAM ESTAR AQUI NO HEAD E NESTA ORDEM! -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
 </head>
@@ -102,10 +102,10 @@
             <div class="sidebar-section filtros-container">
                 <h3>🔍 Filtros</h3>
 
-                <div class="filtro-item">
-                    <label for="filtroMes">Mês</label>
-                    <select id="filtroMes">
-                        <option value="">Todos os meses</option>
+                <div class="filtros-group">
+                    <label for="filterMonth">Mês:</label>
+                    <select id="filterMonth">
+                        <option value="">Todos</option>
                         <option value="1">Janeiro</option>
                         <option value="2">Fevereiro</option>
                         <option value="3">Março</option>
@@ -121,53 +121,48 @@
                     </select>
                 </div>
 
-                <div class="filtro-item">
-                    <label for="filtroAno">Ano</label>
-                    <select id="filtroAno">
-                        <option value="">Todos os anos</option>
+                <div class="filtros-group">
+                    <label for="filterYear">Ano:</label>
+                    <select id="filterYear">
+                        <option value="">Todos</option>
+                        <!-- Anos serão preenchidos dinamicamente pelo JS -->
                     </select>
                 </div>
 
-                <button id="limparFiltrosBtn" class="btn-secondary">🗑️ Limpar Filtros</button>
-                <span id="registrosFiltrados" class="registros-filtrados">0 registros</span>
+                <button id="applyFilters" class="btn-primary">Aplicar Filtros</button>
+                <button id="clearFilters" class="btn-secondary">Limpar Filtros</button>
             </div>
 
-            <!-- AÇÕES -->
-            <div class="sidebar-section acoes-container">
-                <h3>⚙️ Ações</h3>
-                <button id="exportarExcelBtn" class="btn-primary">⬇️ Exportar Excel</button>
-                <button id="imprimirRelatorioBtn" class="btn-primary">🖨️ Imprimir Relatório</button>
-                <button id="importarDadosBtn" class="btn-primary">⬆️ Importar Dados</button>
-                <input type="file" id="importarInput" accept=".xlsx, .xls" style="display: none;">
+            <!-- EXPORTAR RELATÓRIO -->
+            <div class="sidebar-section">
+                <h3>📄 Relatórios</h3>
+                <button id="generateReportBtn" class="btn-primary">Gerar Relatório PDF</button>
             </div>
 
             <div class="sidebar-footer">
-                <p>Última atualização: <span id="ultimaAtualizacao"></span></p>
-                <p>Hora atual: <span id="horaAtual"></span></p>
+                <p>Efaro Dashboard © 2024</p>
+                <p id="currentDateTime"></p>
             </div>
         </aside>
 
         <!-- CONTEÚDO PRINCIPAL -->
         <main class="content">
-            <!-- GRÁFICO DE HORAS EXTRAS -->
             <section class="chart-container card">
                 <h2>Gráfico de Horas Extras por Mês</h2>
                 <canvas id="heChart"></canvas>
             </section>
 
-            <!-- TIMELINE DE HORAS EXTRAS -->
             <section class="timeline-container card">
-                <h2>⏰ Timeline de Horas Extras</h2>
-                <div id="timeline" class="timeline">
-                    <!-- A timeline será gerada aqui pelo JavaScript -->
+                <h2>Timeline de Horas Extras</h2>
+                <div id="heTimeline" class="timeline">
+                    <!-- Timeline será preenchida dinamicamente -->
                 </div>
             </section>
 
-            <!-- DETALHES DOS REGISTROS -->
             <section class="table-container card">
-                <h2>🗓️ Detalhes dos Registros</h2>
+                <h2>Registros Detalhados</h2>
                 <div class="table-responsive">
-                    <table id="heTable">
+                    <table id="dataTable">
                         <thead>
                             <tr>
                                 <th>Data</th>
@@ -176,14 +171,13 @@
                                 <th>Saída 1</th>
                                 <th>Entrada 2</th>
                                 <th>Saída 2</th>
-                                <th>Expediente</th>
                                 <th>Total</th>
                                 <th>HE 50%</th>
                                 <th>HE 100%</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr><td colspan="10" style="text-align: center;">Carregando...</td></tr>
+                            <!-- Dados serão preenchidos dinamicamente -->
                         </tbody>
                     </table>
                 </div>
@@ -191,15 +185,28 @@
         </main>
     </div>
 
-    <!-- Script principal -->
+    <!-- O script.js DEVE SER O ÚLTIMO A SER CARREGADO -->
     <script src="script.js"></script>
-    <!-- Registro do Service Worker -->
     <script>
+        // Registrar o Service Worker
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('service-worker.js').then(reg => {
-                console.log('Service Worker registrado com sucesso:', reg);
-            }).catch(err => {
-                console.log('Service Worker não registrado:', err);
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker registrado com sucesso:', registration);
+                    })
+                    .catch(error => {
+                        console.error('Falha ao registrar o Service Worker:', error);
+                    });
+            });
+
+            // Listener para mensagens do Service Worker (ex: sync completo)
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                if (event.data && event.data.type === 'SYNC_COMPLETO') {
+                    console.log('Mensagem do SW:', event.data.mensagem);
+                    // Opcional: Recarregar dados ou exibir notificação para o usuário
+                    carregarDados(); // Recarrega os dados após a sincronização
+                }
             });
         }
     </script>
