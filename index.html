@@ -185,30 +185,7 @@
         </main>
     </div>
 
-    <!-- O script.js DEVE SER O ÚLTIMO A SER CARREGADO -->
+    <!-- O script.js deve ser carregado por último, após todos os elementos HTML -->
     <script src="script.js"></script>
-    <script>
-        // Registrar o Service Worker
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js')
-                    .then(registration => {
-                        console.log('Service Worker registrado com sucesso:', registration);
-                    })
-                    .catch(error => {
-                        console.error('Falha ao registrar o Service Worker:', error);
-                    });
-            });
-
-            // Listener para mensagens do Service Worker (ex: sync completo)
-            navigator.serviceWorker.addEventListener('message', (event) => {
-                if (event.data && event.data.type === 'SYNC_COMPLETO') {
-                    console.log('Mensagem do SW:', event.data.mensagem);
-                    // Opcional: Recarregar dados ou exibir notificação para o usuário
-                    carregarDados(); // Recarrega os dados após a sincronização
-                }
-            });
-        }
-    </script>
 </body>
 </html>
