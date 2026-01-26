@@ -1,78 +1,124 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Efaro Dashboard - Análise de Horas Extras</title>
 
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css" />
 
     <!-- XLSX LOCAL -->
     <script src="xlsx.min.js"></script>
-
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js CDN estável -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
 </head>
 <body>
-
-    <!-- LOGIN -->
+    <!-- TELA DE LOGIN -->
     <div id="loginScreen" class="login-container">
         <div class="login-box">
-            <h1>📊 Efaro Dashboard</h1>
+            <div class="login-header">
+                <h1>📊 Efaro Dashboard</h1>
+                <p>Análise Inteligente de Horas Extras</p>
+            </div>
 
             <form id="loginForm">
-                <label>E-mail</label>
-                <input id="email" type="email" required>
+                <div class="form-group">
+                    <label for="email">E-mail</label>
+                    <input
+                        type="email"
+                        id="email"
+                        placeholder="seu@email.com"
+                        required
+                    />
+                </div>
 
-                <label>Senha</label>
-                <input id="password" type="password" required>
+                <div class="form-group">
+                    <label for="password">Senha</label>
+                    <input
+                        type="password"
+                        id="password"
+                        placeholder="••••••••"
+                        required
+                    />
+                </div>
 
-                <button type="submit">Entrar</button>
+                <button type="submit" class="btn-login">Entrar</button>
 
-                <p id="loginError" class="error"></p>
-                <p id="loadingMessage" class="loading"></p>
+                <p id="loginError" class="login-error"></p>
+                <p id="loadingMessage" class="loading-message"></p>
             </form>
         </div>
     </div>
 
     <!-- DASHBOARD -->
-    <div id="dashboard" class="dashboard" style="display:none;">
-
-        <header>
-            <h2>📊 Efaro Dashboard</h2>
-            <button id="logoutBtn">Sair</button>
+    <div id="dashboard" class="dashboard" style="display: none">
+        <!-- HEADER -->
+        <header class="header">
+            <div class="header-left">
+                <h1>📊 Efaro Dashboard</h1>
+            </div>
+            <div class="header-right">
+                <span id="userNameHeader" class="user-name"></span>
+                <button id="logoutBtn" class="btn-logout">🚪 Sair</button>
+            </div>
         </header>
 
-        <section>
-            <h3>Resumo</h3>
-            <p>Total Registros: <span id="totalRegistros">0</span></p>
-            <p>HE 50%: <span id="totalHE50">0h</span></p>
-            <p>HE 100%: <span id="totalHE100">0h</span></p>
-            <p>Total HE: <span id="totalHorasExtras">0h</span></p>
-        </section>
+        <div class="dashboard-grid">
+            <!-- SIDEBAR / RESUMO -->
+            <aside class="sidebar">
+                <div class="sidebar-section">
+                    <h2>Resumo</h2>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-label">Registros</span>
+                            <span id="totalRegistros" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">HE 50%</span>
+                            <span id="totalHE50" class="stat-value">0h</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">HE 100%</span>
+                            <span id="totalHE100" class="stat-value">0h</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Total HE</span>
+                            <span id="totalHorasExtras" class="stat-value">0h</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
 
-        <canvas id="heChart"></canvas>
+            <!-- CONTEÚDO PRINCIPAL -->
+            <main class="content">
+                <section class="card">
+                    <h2>Horas Extras por Dia</h2>
+                    <canvas id="heChart"></canvas>
+                </section>
 
-        <section>
-            <h3>Registros Detalhados</h3>
-            <table id="dataTable">
-                <thead>
-                    <tr>
-                        <th>Data</th>
-                        <th>Dia</th>
-                        <th>Entrada 1</th>
-                        <th>Saída 1</th>
-                        <th>Entrada 2</th>
-                        <th>Saída 2</th>
-                        <th>Total</th>
-                        <th>HE 50%</th>
-                        <th>HE 100%</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </section>
-
+                <section class="card">
+                    <h2>Registros Detalhados</h2>
+                    <div class="table-responsive">
+                        <table id="dataTable">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Dia</th>
+                                    <th>Entrada 1</th>
+                                    <th>Saída 1</th>
+                                    <th>Entrada 2</th>
+                                    <th>Saída 2</th>
+                                    <th>Total</th>
+                                    <th>HE 50%</th>
+                                    <th>HE 100%</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </section>
+            </main>
+        </div>
     </div>
 
     <script src="script.js"></script>
