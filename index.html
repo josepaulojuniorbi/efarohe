@@ -4,189 +4,77 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Efaro Dashboard - Análise de Horas Extras</title>
+
     <link rel="stylesheet" href="styles.css">
-    <!-- ESTES SCRIPT SÃO CRUCIAIS E PRECISAM ESTAR AQUI NO HEAD E NESTA ORDEM! -->
-    <!-- AGORA APONTANDO PARA A VERSÃO LOCAL DO XLSX.MIN.JS -->
-    <script src="xlsx.min.js"></script> 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+
+    <!-- XLSX LOCAL -->
+    <script src="xlsx.min.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <!-- TELA DE LOGIN -->
+
+    <!-- LOGIN -->
     <div id="loginScreen" class="login-container">
         <div class="login-box">
-            <div class="login-header">
-                <h1>📊 Efaro Dashboard</h1>
-                <p>Análise Inteligente de Horas Extras</p>
-            </div>
+            <h1>📊 Efaro Dashboard</h1>
 
             <form id="loginForm">
-                <div class="form-group">
-                    <label for="email">E-mail</label>
-                    <input type="email" id="email" placeholder="seu@email.com" required>
-                </div>
+                <label>E-mail</label>
+                <input id="email" type="email" required>
 
-                <div class="form-group">
-                    <label for="password">Senha</label>
-                    <input type="password" id="password" placeholder="••••••••" required>
-                </div>
+                <label>Senha</label>
+                <input id="password" type="password" required>
 
-                <button type="submit" class="btn-login">Entrar</button>
+                <button type="submit">Entrar</button>
 
-                <div id="loginError" class="login-error" style="display: none;">
-                    ❌ E-mail ou senha inválidos!
-                </div>
-
-                <div id="loadingMessage" class="loading-message" style="display: none;">
-                    ⏳ Carregando dados...
-                </div>
+                <p id="loginError" class="error"></p>
+                <p id="loadingMessage" class="loading"></p>
             </form>
         </div>
     </div>
 
     <!-- DASHBOARD -->
-    <div id="dashboard" class="dashboard" style="display: none;">
-        <!-- HEADER -->
-        <header class="header">
-            <div class="header-left">
-                <button id="toggleSidebar" class="btn-menu-mobile">☰</button>
-                <h1>📊 Efaro Dashboard</h1>
-            </div>
-            <div class="header-right">
-                <span id="userNameHeader" class="user-name"></span>
-                <button id="toggleDarkMode" class="btn-theme">🌙</button>
-                <button id="logoutBtn" class="btn-logout">🚪 Sair</button>
-            </div>
+    <div id="dashboard" class="dashboard" style="display:none;">
+
+        <header>
+            <h2>📊 Efaro Dashboard</h2>
+            <button id="logoutBtn">Sair</button>
         </header>
 
-        <!-- SIDEBAR -->
-        <aside id="sidebar" class="sidebar">
-            <div class="sidebar-header">
-                <h2>👤 <span id="userName"></span></h2>
-            </div>
+        <section>
+            <h3>Resumo</h3>
+            <p>Total Registros: <span id="totalRegistros">0</span></p>
+            <p>HE 50%: <span id="totalHE50">0h</span></p>
+            <p>HE 100%: <span id="totalHE100">0h</span></p>
+            <p>Total HE: <span id="totalHorasExtras">0h</span></p>
+        </section>
 
-            <!-- ESTATÍSTICAS -->
-            <div class="sidebar-section">
-                <h3>📈 Resumo</h3>
-                <div class="stats">
-                    <div class="stat-item">
-                        <span class="stat-label">Registros</span>
-                        <span class="stat-value" id="totalRegistros">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">HE 50%</span>
-                        <span class="stat-value" id="totalHE50">0h</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">HE 100%</span>
-                        <span class="stat-value" id="totalHE100">0h</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Total HE</span>
-                        <span class="stat-value" id="totalHorasExtras">0h</span>
-                    </div>
-                </div>
-            </div>
+        <canvas id="heChart"></canvas>
 
-            <!-- ANÁLISE DETALHADA HE 50% -->
-            <div class="sidebar-section analise-section">
-                <h3>📊 HE 50%</h3>
-                <div id="analiseHE50" class="analise-content"></div>
-            </div>
+        <section>
+            <h3>Registros Detalhados</h3>
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Dia</th>
+                        <th>Entrada 1</th>
+                        <th>Saída 1</th>
+                        <th>Entrada 2</th>
+                        <th>Saída 2</th>
+                        <th>Total</th>
+                        <th>HE 50%</th>
+                        <th>HE 100%</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </section>
 
-            <!-- ANÁLISE DETALHADA HE 100% -->
-            <div class="sidebar-section analise-section">
-                <h3>📊 HE 100%</h3>
-                <div id="analiseHE100" class="analise-content"></div>
-            </div>
-
-            <!-- FILTROS -->
-            <div class="sidebar-section filtros-container">
-                <h3>🔍 Filtros</h3>
-
-                <div class="filtros-group">
-                    <label for="filterMonth">Mês:</label>
-                    <select id="filterMonth">
-                        <option value="">Todos</option>
-                        <option value="1">Janeiro</option>
-                        <option value="2">Fevereiro</option>
-                        <option value="3">Março</option>
-                        <option value="4">Abril</option>
-                        <option value="5">Maio</option>
-                        <option value="6">Junho</option>
-                        <option value="7">Julho</option>
-                        <option value="8">Agosto</option>
-                        <option value="9">Setembro</option>
-                        <option value="10">Outubro</option>
-                        <option value="11">Novembro</option>
-                        <option value="12">Dezembro</option>
-                    </select>
-                </div>
-
-                <div class="filtros-group">
-                    <label for="filterYear">Ano:</label>
-                    <select id="filterYear">
-                        <option value="">Todos</option>
-                        <!-- Anos serão preenchidos dinamicamente pelo JS -->
-                    </select>
-                </div>
-
-                <button id="applyFilters" class="btn-primary">Aplicar Filtros</button>
-                <button id="clearFilters" class="btn-secondary">Limpar Filtros</button>
-            </div>
-
-            <!-- EXPORTAR RELATÓRIO -->
-            <div class="sidebar-section">
-                <h3>📄 Relatórios</h3>
-                <button id="generateReportBtn" class="btn-primary">Gerar Relatório PDF</button>
-            </div>
-
-            <div class="sidebar-footer">
-                <p>Efaro Dashboard © 2024</p>
-                <p id="currentDateTime"></p>
-            </div>
-        </aside>
-
-        <!-- CONTEÚDO PRINCIPAL -->
-        <main class="content">
-            <section class="chart-container card">
-                <h2>Gráfico de Horas Extras por Mês</h2>
-                <canvas id="heChart"></canvas>
-            </section>
-
-            <section class="timeline-container card">
-                <h2>Timeline de Horas Extras</h2>
-                <div id="heTimeline" class="timeline">
-                    <!-- Timeline será preenchida dinamicamente -->
-                </div>
-            </section>
-
-            <section class="table-container card">
-                <h2>Registros Detalhados</h2>
-                <div class="table-responsive">
-                    <table id="dataTable">
-                        <thead>
-                            <tr>
-                                <th>Data</th>
-                                <th>Dia</th>
-                                <th>Entrada 1</th>
-                                <th>Saída 1</th>
-                                <th>Entrada 2</th>
-                                <th>Saída 2</th>
-                                <th>Total</th>
-                                <th>HE 50%</th>
-                                <th>HE 100%</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Dados serão preenchidos dinamicamente -->
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        </main>
     </div>
 
-    <!-- O script.js deve ser carregado por último, após todos os elementos HTML -->
     <script src="script.js"></script>
 </body>
 </html>
