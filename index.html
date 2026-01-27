@@ -1,158 +1,53 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Efaro Dashboard - Análise de Horas Extras</title>
-
-    <link rel="stylesheet" href="styles.css" />
-
-    <!-- XLSX LOCAL -->
-    <script src="xlsx.min.js"></script>
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Efaro Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="xlsx.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
 </head>
 <body>
-    <!-- TELA DE LOGIN -->
-    <div id="loginScreen" class="login-container">
-        <div class="login-box">
-            <div class="login-header">
-                <h1>📊 Efaro Dashboard</h1>
-                <p>Análise Inteligente de Horas Extras</p>
-            </div>
-
-            <form id="loginForm">
-                <div class="form-group">
-                    <label for="email">E-mail</label>
-                    <input
-                        type="email"
-                        id="email"
-                        placeholder="seu@email.com"
-                        required
-                    />
-                </div>
-
-                <div class="form-group">
-                    <label for="password">Senha</label>
-                    <input
-                        type="password"
-                        id="password"
-                        placeholder="••••••••"
-                        required
-                    />
-                </div>
-
-                <button type="submit" class="btn-login">Entrar</button>
-
-                <p id="loginError" class="login-error"></p>
-                <p id="loadingMessage" class="loading-message"></p>
-            </form>
-        </div>
+  <header class="app-header">
+    <h1>Efaro Dashboard</h1>
+    <div class="filters">
+      <select id="monthFilter">
+        <option value="">Todos os Meses</option>
+      </select>
+      <select id="yearFilter">
+        <option value="">Todos os Anos</option>
+      </select>
+      <button id="applyFilters">Filtrar</button>
+      <button id="resetFilters">Resetar</button>
     </div>
+  </header>
 
-    <!-- DASHBOARD -->
-    <div id="dashboard" class="dashboard" style="display: none">
-        <!-- HEADER -->
-        <header class="header">
-            <div class="header-left">
-                <h1>📊 Efaro Dashboard</h1>
-            </div>
-            <div class="header-right">
-                <span id="userNameHeader" class="user-name"></span>
-                <button id="logoutBtn" class="btn-logout">🚪 Sair</button>
-            </div>
-        </header>
+  <main class="app-main">
+    <section class="summary-cards">
+      <div class="card"><span>Total HE</span><strong id="totalHE">0h</strong></div>
+      <div class="card"><span>HE 50%</span><strong id="he50sum">0h</strong></div>
+      <div class="card"><span>HE 100%</span><strong id="he100sum">0h</strong></div>
+    </section>
 
-        <div class="dashboard-grid">
-            <!-- SIDEBAR -->
-            <aside class="sidebar">
-                <div class="sidebar-section">
-                    <h2>Resumo</h2>
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <span class="stat-label">Registros</span>
-                            <span id="totalRegistros" class="stat-value">0</span>
-                        </div>
-                        <div class="stat-card">
-                            <span class="stat-label">HE 50%</span>
-                            <span id="totalHE50" class="stat-value">0h</span>
-                        </div>
-                        <div class="stat-card">
-                            <span class="stat-label">HE 100%</span>
-                            <span id="totalHE100" class="stat-value">0h</span>
-                        </div>
-                        <div class="stat-card">
-                            <span class="stat-label">Total HE</span>
-                            <span id="totalHorasExtras" class="stat-value">0h</span>
-                        </div>
-                    </div>
-                </div>
+    <section class="chart-section">
+      <canvas id="heChart"></canvas>
+    </section>
 
-                <div class="sidebar-section">
-                    <h2>Filtros</h2>
-                    <div class="form-group">
-                        <label for="filterMonth">Mês</label>
-                        <select id="filterMonth">
-                            <option value="">Todos</option>
-                            <option value="1">Janeiro</option>
-                            <option value="2">Fevereiro</option>
-                            <option value="3">Março</option>
-                            <option value="4">Abril</option>
-                            <option value="5">Maio</option>
-                            <option value="6">Junho</option>
-                            <option value="7">Julho</option>
-                            <option value="8">Agosto</option>
-                            <option value="9">Setembro</option>
-                            <option value="10">Outubro</option>
-                            <option value="11">Novembro</option>
-                            <option value="12">Dezembro</option>
-                        </select>
-                    </div>
+    <section class="table-section">
+      <table id="dataTable">
+        <thead>
+          <tr>
+            <th>Data</th><th>Dia</th><th>Entrada 1</th><th>Saída 1</th>
+            <th>Entrada 2</th><th>Saída 2</th><th>Total</th>
+            <th>HE 50%</th><th>HE 100%</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
 
-                    <div class="form-group">
-                        <label for="filterYear">Ano</label>
-                        <select id="filterYear">
-                            <option value="">Todos</option>
-                        </select>
-                    </div>
-
-                    <button id="applyFilters" class="btn-primary">Aplicar filtros</button>
-                    <button id="clearFilters" class="btn-secondary">Limpar filtros</button>
-                </div>
-            </aside>
-
-            <!-- CONTEÚDO PRINCIPAL -->
-            <main class="content">
-                <section class="card">
-                    <h2>Horas Extras por Dia</h2>
-                    <canvas id="heChart"></canvas>
-                </section>
-
-                <section class="card">
-                    <h2>Registros Detalhados</h2>
-                    <div class="table-responsive">
-                        <table id="dataTable">
-                            <thead>
-                                <tr>
-                                    <th>Data</th>
-                                    <th>Dia</th>
-                                    <th>Entrada 1</th>
-                                    <th>Saída 1</th>
-                                    <th>Entrada 2</th>
-                                    <th>Saída 2</th>
-                                    <th>Total</th>
-                                    <th>HE 50%</th>
-                                    <th>HE 100%</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                </section>
-            </main>
-        </div>
-    </div>
-
-    <script src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
