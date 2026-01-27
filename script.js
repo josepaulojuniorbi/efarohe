@@ -6,18 +6,23 @@ const loadingMessage = document.getElementById("loadingMessage");
 const logoutBtn = document.getElementById("logoutBtn");
 const userNameHeader = document.getElementById("userNameHeader");
 
+const filterMonth = document.getElementById("filterMonth");
+const filterYear = document.getElementById("filterYear");
+const applyFiltersBtn = document.getElementById("applyFilters");
+const clearFiltersBtn = document.getElementById("clearFilters");
+
 let todosDados = [];
 let dadosFiltrados = [];
 let grafico = null;
 
-// LOGIN
+// ================== LOGIN ==================
+
 loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const email = document.getElementById("email").value.trim();
     const senha = document.getElementById("password").value.trim();
 
-    // Ajuste aqui se quiser outro login
     const EMAIL_CORRETO = "josepaulojunior@live.com";
     const SENHA_CORRETA = "123";
 
@@ -42,21 +47,27 @@ logoutBtn.addEventListener("click", () => {
     userNameHeader.textContent = "";
 });
 
+// ================== DASHBOARD ==================
+
 async function mostrarDashboard(email) {
     try {
         await carregarDados();
+        popularAnosFiltro();
+
         userNameHeader.textContent = email;
         loginScreen.style.display = "none";
         dashboard.style.display = "block";
-        atualizarDashboard();
+
+        aplicarFiltros(); // inicial
     } catch (erro) {
-        alert("Erro ao carregar dados. Verifique sua conexão ou o arquivo Excel.");
+        alert("Erro ao carregar dados. Verifique a conexão ou o arquivo Excel.");
         console.error("Erro ao carregar dados:", erro);
         throw erro;
     }
 }
 
-// CARREGAR EXCEL
+// ================== LEITURA DO EXCEL ==================
+
 async function carregarDados() {
     const resp = await fetch("base_dados.xlsx");
     if (!resp.ok) throw new Error("Falha ao baixar Excel: " + resp.status);
@@ -67,27 +78,36 @@ async function carregarDados() {
     const sheet = workbook.Sheets[sheetName];
     const dadosBrutos = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
-    todosDados = dadosBrutos.map((row) => ({
-        data: formatarDataExcel(row["Data"]),
-        dia: row["Dia"] || "",
-        entrada1: formatarHora(row["Entrada1"] || row["Entrada 1"]),
-        saida1: formatarHora(row["Saida1"] || row["Saída 1"] || row["Saida 1"]),
-        entrada2: formatarHora(row["Entrada2"] || row["Entrada 2"]),
-        saida2: formatarHora(row["Saida2"] || row["Saída 2"] || row["Saida 2"]),
-        totalHoras: formatarNumero(row["Total"]),
-        he50: Number(row["HE 50%"] || row["HE50"] || 0),
-        he100: Number(row["HE 100%"] || row["HE100"] || 0),
-    }));
+    todosDados = dadosBrutos.map((row) => {
+        const serialData = row["Data"];
+        const dataFormatada = formatarDataExcel(serialData);
+        const [dia, mes, ano] = dataFormatada.split("/");
+        const mesNum = Number(mes);
+        const anoNum = Number(ano);
+
+        return {
+            data: dataFormatada,
+            diaSemana: row["Dia"] || "",
+            entrada1: formatarHora(row["Entrada1"] || row["Entrada 1"]),
+            saida1: formatarHora(row["Saida1"] || row["Saída 1"] || row["Saida 1"]),
+            entrada2: formatarHora(row["Entrada2"] || row["Entrada 2"]),
+            saida2: formatarHora(row["Saida2"] || row["Saída 2"] || row["Saida 2"]),
+            totalHoras: formatarNumero(row["Total"]),
+            he50: Number(row["HE 50%"] || row["HE50"] || 0),
+            he100: Number(row["HE 100%"] || row["HE100"] || 0),
+            mes: mesNum,
+            ano: anoNum,
+        };
+    });
 
     dadosFiltrados = [...todosDados];
 }
 
-// FORMATOS
+// ================== FORMATOS ==================
+
 function formatarDataExcel(valor) {
-    // já vem como texto dd/mm/aaaa
     if (typeof valor === "string" && valor.includes("/")) return valor;
 
-    // número Excel (ex: 45649)
     if (typeof valor === "number" && !isNaN(valor)) {
         const epoch = new Date(Date.UTC(1899, 11, 30));
         const date = new Date(epoch.getTime() + valor * 86400000);
@@ -102,10 +122,8 @@ function formatarDataExcel(valor) {
 function formatarHora(valor) {
     if (valor === "" || valor == null) return "";
 
-    // já vem com dois pontos
     if (typeof valor === "string" && valor.includes(":")) return valor;
 
-    // número decimal (0.5 dia)
     if (typeof valor === "number" && !isNaN(valor)) {
         const totalMin = Math.round(valor * 24 * 60);
         const h = String(Math.floor(totalMin / 60)).padStart(2, "0");
@@ -123,7 +141,41 @@ function formatarNumero(v) {
     return Number(n.toFixed(2));
 }
 
-// DASHBOARD
+// ================== FILTROS ==================
+
+function popularAnosFiltro() {
+    const anos = [...new Set(todosDados.map((d) => d.ano).filter(Boolean))].sort();
+    anos.forEach((ano) => {
+        const opt = document.createElement("option");
+        opt.value = ano;
+        opt.textContent = ano;
+        filterYear.appendChild(opt);
+    });
+}
+
+applyFiltersBtn.addEventListener("click", aplicarFiltros);
+clearFiltersBtn.addEventListener("click", () => {
+    filterMonth.value = "";
+    filterYear.value = "";
+    aplicarFiltros();
+});
+
+function aplicarFiltros() {
+    const mesSel = filterMonth.value ? Number(filterMonth.value) : null;
+    const anoSel = filterYear.value ? Number(filterYear.value) : null;
+
+    dadosFiltrados = todosDados.filter((d) => {
+        let ok = true;
+        if (mesSel !== null) ok = ok && d.mes === mesSel;
+        if (anoSel !== null) ok = ok && d.ano === anoSel;
+        return ok;
+    });
+
+    atualizarDashboard();
+}
+
+// ================== DASHBOARD ==================
+
 function atualizarDashboard() {
     document.getElementById("totalRegistros").textContent = dadosFiltrados.length;
 
@@ -146,7 +198,7 @@ function preencherTabela() {
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td>${linha.data}</td>
-            <td>${linha.dia}</td>
+            <td>${linha.diaSemana}</td>
             <td>${linha.entrada1}</td>
             <td>${linha.saida1}</td>
             <td>${linha.entrada2}</td>
@@ -180,7 +232,7 @@ function desenharGrafico() {
         options: {
             responsive: true,
             scales: {
-                x: { ticks: { autoSkip: true, maxTicksLimit: 15 } },
+                x: { ticks: { autoSkip: true, maxTicksLimit: 20 } },
                 y: { beginAtZero: true },
             },
         },
