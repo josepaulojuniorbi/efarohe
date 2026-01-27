@@ -18,10 +18,10 @@ async function carregarDados() {
         const data = formatarData(row["Data"]);
         const { dia, mes, ano } = extrairPartesData(data);
 
-        // 2) Total em horas (número do Excel ou texto)
+        // 2) Total vindo do Excel (fração de dia ou número). Quero em HORAS.
         const totalHoras = horasAPartirDoExcel(row["Total"]);
 
-        // 3) Cálculo de HE 50% / 100%
+        // 3) Cálculo HE 50% / 100%
         const he = calcularHorasExtras(totalHoras);
 
         return {
@@ -31,9 +31,9 @@ async function carregarDados() {
             saida1: formatarHora(row["Saida1"] || row["Saída 1"] || row["Saida 1"]),
             entrada2: formatarHora(row["Entrada2"] || row["Entrada 2"]),
             saida2: formatarHora(row["Saida2"] || row["Saída 2"] || row["Saida 2"]),
-            totalHoras,
-            he50: he.he50,
-            he100: he.he100,
+            totalHoras,       // em HORAS, ex: 9.25
+            he50: he.he50,    // horas de HE 50%
+            he100: he.he100,  // horas de HE 100%
             mes,
             ano,
         };
@@ -44,7 +44,7 @@ async function carregarDados() {
 
 // ================= CONVERSÕES =================
 
-// Excel serial → dd/mm/aaaa
+// Excel serial -> dd/mm/aaaa
 function formatarData(v) {
     if (typeof v === "string" && v.includes("/")) return v;
 
@@ -61,17 +61,17 @@ function extrairPartesData(dataStr) {
     return { dia: Number(d), mes: Number(m), ano: Number(a) };
 }
 
-// Lê a coluna "Total" do Excel e sempre devolve HORAS (não fração de dia)
+// Lê a coluna "Total" e devolve HORAS (não fração de dia)
 function horasAPartirDoExcel(v) {
     if (v === "" || v == null) return 0;
 
-    // Se já for número (0.05, 0.38 etc) = fração de dia
+    // Número do Excel: fração de dia (0.5 = 12h, 0.05 ~ 1,2h)
     if (typeof v === "number" && !isNaN(v)) {
         const horas = v * 24;
-        return Number(horas.toFixed(4)); // ex: 0.5d = 12.0000h
+        return Number(horas.toFixed(4));
     }
 
-    // Se vier como texto "8", "8,5", "8.25"
+    // Texto "8", "8,5", "8.25"
     if (typeof v === "string") {
         const num = Number(v.replace(",", "."));
         if (!isNaN(num)) return num;
@@ -80,7 +80,7 @@ function horasAPartirDoExcel(v) {
     return 0;
 }
 
-// Horários de entrada/saída
+// Conversão horários de entrada/saída
 function formatarHora(v) {
     if (v === "" || v == null) return "";
 
@@ -98,10 +98,10 @@ function formatarHora(v) {
     return String(v);
 }
 
-// Regra de HE (ajuste se sua regra for diferente)
+// Regra de HE:
 // - 8h normais
 // - primeiras 2h de excesso = HE 50%
-// - resto = HE 100%
+// - restante = HE 100%
 function calcularHorasExtras(totalHoras) {
     const jornada = 8;
     const excesso = Math.max(0, totalHoras - jornada);
@@ -117,13 +117,13 @@ function calcularHorasExtras(totalHoras) {
 
 const filterMonth = document.getElementById("filterMonth");
 const filterYear = document.getElementById("filterYear");
-const applyBtn = document.getElementById("applyFilters");
-const clearBtn = document.getElementById("clearFilters");
+const applyBtn  = document.getElementById("applyFilters");
+const clearBtn  = document.getElementById("clearFilters");
 
 applyBtn.addEventListener("click", aplicarFiltros);
 clearBtn.addEventListener("click", () => {
     filterMonth.value = "";
-    filterYear.value = "";
+    filterYear.value  = "";
     dadosFiltrados = [...todosDados];
     atualizarDashboard();
 });
@@ -152,18 +152,18 @@ function aplicarFiltros() {
     atualizarDashboard();
 }
 
-// ================= DASHBOARD (TABELA + RESUMO) =================
+// ================= DASHBOARD =================
 
 function atualizarDashboard() {
     document.getElementById("totalRegistros").textContent = dadosFiltrados.length;
 
-    const totalHE50 = dadosFiltrados.reduce((s, d) => s + d.he50, 0);
+    const totalHE50  = dadosFiltrados.reduce((s, d) => s + d.he50, 0);
     const totalHE100 = dadosFiltrados.reduce((s, d) => s + d.he100, 0);
-    const totalHE = totalHE50 + totalHE100;
+    const totalHE    = totalHE50 + totalHE100;
 
-    document.getElementById("totalHE50").textContent = totalHE50.toFixed(2) + "h";
+    document.getElementById("totalHE50").textContent  = totalHE50.toFixed(2)  + "h";
     document.getElementById("totalHE100").textContent = totalHE100.toFixed(2) + "h";
-    document.getElementById("totalHE").textContent = totalHE.toFixed(2) + "h";
+    document.getElementById("totalHE").textContent    = totalHE.toFixed(2)    + "h";
 
     preencherTabela();
     desenharGraficoMensalComTendencia();
@@ -192,13 +192,12 @@ function preencherTabela() {
 
 // ================= GRÁFICO: VARIAÇÃO MENSAL + LINHA DE TENDÊNCIA =================
 
-// Agrupa HE por mês/ano e gera barras (HE total) + linha (tendência)
 function desenharGraficoMensalComTendencia() {
     const ctx = document.getElementById("heChart");
     if (!ctx) return;
 
-    // 1) Agregar por ano-mês
-    const mapa = new Map(); // chave: "2024-01" → { label: "Jan/2024", total: X }
+    // 1) Agregar HE total por mês/ano
+    const mapa = new Map(); // chave "2024-01" => { label: "01/2024", total: X }
 
     dadosFiltrados.forEach((d) => {
         if (!d.ano || !d.mes) return;
@@ -212,18 +211,15 @@ function desenharGraficoMensalComTendencia() {
         mapa.get(chave).total += heTotal;
     });
 
-    const chavesOrdenadas = [...mapa.keys()].sort(); // ordena por ano-mês
-    const labels = chavesOrdenadas.map((k) => mapa.get(k).label);
+    const chavesOrdenadas = [...mapa.keys()].sort();
+    const labels  = chavesOrdenadas.map((k) => mapa.get(k).label);
     const valores = chavesOrdenadas.map((k) => Number(mapa.get(k).total.toFixed(2)));
 
-    // 2) Calcular linha de tendência simples (média móvel ou regressão linear)
-    // Aqui vou usar uma regressão linear simples para ficar bem "analista"
     const tendencia = calcularTendenciaLinear(valores);
 
     if (grafico) grafico.destroy();
 
     grafico = new Chart(ctx, {
-        type: "bar",
         data: {
             labels,
             datasets: [
@@ -233,6 +229,7 @@ function desenharGraficoMensalComTendencia() {
                     data: valores,
                     backgroundColor: "rgba(34, 197, 94, 0.7)",
                     borderRadius: 6,
+                    yAxisID: "y",
                 },
                 {
                     type: "line",
@@ -252,11 +249,13 @@ function desenharGraficoMensalComTendencia() {
             maintainAspectRatio: false,
             scales: {
                 x: {
-                    ticks: { color: "#e5f5e9" },
+                    ticks: { color: "#e5f5e9", maxRotation: 0, minRotation: 0 },
+                    grid: { display: false },
                 },
                 y: {
                     beginAtZero: true,
                     ticks: { color: "#e5f5e9" },
+                    grid: { color: "rgba(148, 163, 184, 0.2)" },
                 },
             },
             plugins: {
@@ -268,7 +267,7 @@ function desenharGraficoMensalComTendencia() {
     });
 }
 
-// calcula valores da tendência linear para cada ponto
+// regressão linear simples
 function calcularTendenciaLinear(valores) {
     const n = valores.length;
     if (n === 0) return [];
@@ -276,13 +275,13 @@ function calcularTendenciaLinear(valores) {
     const xs = Array.from({ length: n }, (_, i) => i + 1);
     const ys = valores;
 
-    const somaX = xs.reduce((a, b) => a + b, 0);
-    const somaY = ys.reduce((a, b) => a + b, 0);
+    const somaX  = xs.reduce((a, b) => a + b, 0);
+    const somaY  = ys.reduce((a, b) => a + b, 0);
     const somaXY = xs.reduce((a, x, i) => a + x * ys[i], 0);
     const somaX2 = xs.reduce((a, x) => a + x * x, 0);
 
-    // coeficientes da reta: y = a*x + b
-    const a = (n * somaXY - somaX * somaY) / (n * somaX2 - somaX * somaX || 1);
+    const denom = n * somaX2 - somaX * somaX || 1;
+    const a = (n * somaXY - somaX * somaY) / denom;
     const b = (somaY - a * somaX) / n;
 
     return xs.map((x) => Number((a * x + b).toFixed(2)));
