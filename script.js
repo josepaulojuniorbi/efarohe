@@ -1,4 +1,3 @@
-// ELEMENTOS
 const loginScreen = document.getElementById("loginScreen");
 const dashboard = document.getElementById("dashboard");
 const loginForm = document.getElementById("loginForm");
@@ -7,20 +6,18 @@ const loadingMessage = document.getElementById("loadingMessage");
 const logoutBtn = document.getElementById("logoutBtn");
 const userNameHeader = document.getElementById("userNameHeader");
 
-// DADOS
 let todosDados = [];
 let dadosFiltrados = [];
 let grafico = null;
 
-// ================== LOGIN ==================
-
+// LOGIN
 loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const email = document.getElementById("email").value.trim();
     const senha = document.getElementById("password").value.trim();
 
-    // ajuste aqui PARA O QUE VOCÊ QUISER
+    // Ajuste aqui se quiser outro login
     const EMAIL_CORRETO = "josepaulojunior@live.com";
     const SENHA_CORRETA = "123";
 
@@ -45,16 +42,12 @@ logoutBtn.addEventListener("click", () => {
     userNameHeader.textContent = "";
 });
 
-// MOSTRAR DASHBOARD
 async function mostrarDashboard(email) {
     try {
         await carregarDados();
-
         userNameHeader.textContent = email;
-
         loginScreen.style.display = "none";
         dashboard.style.display = "block";
-
         atualizarDashboard();
     } catch (erro) {
         alert("Erro ao carregar dados. Verifique sua conexão ou o arquivo Excel.");
@@ -63,25 +56,17 @@ async function mostrarDashboard(email) {
     }
 }
 
-// ================== LEITURA DO EXCEL ==================
-
+// CARREGAR EXCEL
 async function carregarDados() {
-    console.log("Tentando carregar base_dados.xlsx...");
     const resp = await fetch("base_dados.xlsx");
-
-    if (!resp.ok) {
-        throw new Error("Falha ao baixar Excel: " + resp.status);
-    }
+    if (!resp.ok) throw new Error("Falha ao baixar Excel: " + resp.status);
 
     const arrayBuffer = await resp.arrayBuffer();
     const workbook = XLSX.read(arrayBuffer, { type: "array" });
-
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
-
     const dadosBrutos = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
-    // Mapeia e formata
     todosDados = dadosBrutos.map((row) => ({
         data: formatarDataExcel(row["Data"]),
         dia: row["Dia"] || "",
@@ -97,37 +82,30 @@ async function carregarDados() {
     dadosFiltrados = [...todosDados];
 }
 
-// ================== FORMATAÇÕES ==================
-
+// FORMATOS
 function formatarDataExcel(valor) {
-    // Se já vier como string tipo 01/01/2024, só retorna
+    // já vem como texto dd/mm/aaaa
     if (typeof valor === "string" && valor.includes("/")) return valor;
 
-    // Se for número tipo 45649 (datas Excel)
+    // número Excel (ex: 45649)
     if (typeof valor === "number" && !isNaN(valor)) {
-        // Excel date serial -> Date JS
         const epoch = new Date(Date.UTC(1899, 11, 30));
         const date = new Date(epoch.getTime() + valor * 86400000);
-
         const dia = String(date.getUTCDate()).padStart(2, "0");
         const mes = String(date.getUTCMonth() + 1).padStart(2, "0");
         const ano = date.getUTCFullYear();
-
         return `${dia}/${mes}/${ano}`;
     }
-
     return "";
 }
 
 function formatarHora(valor) {
     if (valor === "" || valor == null) return "";
 
-    // Se já está no formato texto hh:mm
-    if (typeof valor === "string" && valor.includes(":")) {
-        return valor;
-    }
+    // já vem com dois pontos
+    if (typeof valor === "string" && valor.includes(":")) return valor;
 
-    // Se vier como número decimal (0.5 dia, etc)
+    // número decimal (0.5 dia)
     if (typeof valor === "number" && !isNaN(valor)) {
         const totalMin = Math.round(valor * 24 * 60);
         const h = String(Math.floor(totalMin / 60)).padStart(2, "0");
@@ -142,14 +120,11 @@ function formatarNumero(v) {
     if (v == null || v === "") return 0;
     const n = Number(v);
     if (isNaN(n)) return 0;
-    // mantém algumas casas decimais, mas não aquele monte
     return Number(n.toFixed(2));
 }
 
-// ================== DASHBOARD ==================
-
+// DASHBOARD
 function atualizarDashboard() {
-    // Totais
     document.getElementById("totalRegistros").textContent = dadosFiltrados.length;
 
     const totalHE50 = dadosFiltrados.reduce((s, d) => s + Number(d.he50 || 0), 0);
@@ -167,7 +142,6 @@ function atualizarDashboard() {
 function preencherTabela() {
     const tbody = document.querySelector("#dataTable tbody");
     tbody.innerHTML = "";
-
     dadosFiltrados.forEach((linha) => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
@@ -187,7 +161,6 @@ function preencherTabela() {
 
 function desenharGrafico() {
     const ctx = document.getElementById("heChart");
-
     if (grafico) grafico.destroy();
 
     grafico = new Chart(ctx, {
@@ -207,12 +180,8 @@ function desenharGrafico() {
         options: {
             responsive: true,
             scales: {
-                x: {
-                    ticks: { autoSkip: true, maxTicksLimit: 15 },
-                },
-                y: {
-                    beginAtZero: true,
-                },
+                x: { ticks: { autoSkip: true, maxTicksLimit: 15 } },
+                y: { beginAtZero: true },
             },
         },
     });
