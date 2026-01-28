@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Efaro Dashboard - Horas Extras</title>
+    <title>Efaro · Dashboard Agronegócio</title>
     <link rel="stylesheet" href="styles.css">
-    <!-- Chart.js para gráficos -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <!-- SheetJS para leitura de Excel -->
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 </head>
 <body>
     <header class="app-header">
@@ -37,7 +36,6 @@
             </select>
             <select id="filterYear">
                 <option value="">Todos os anos</option>
-                <!-- Anos serão populados via JS -->
             </select>
             <button id="applyFilters" class="btn-primary">Aplicar</button>
             <button id="clearFilters" class="btn-secondary">Limpar</button>
@@ -89,7 +87,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- Dados serão preenchidos via JS -->
+                        <!-- Dados serão preenchidos aqui pelo JavaScript -->
                     </tbody>
                 </table>
             </div>
