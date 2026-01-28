@@ -16,9 +16,10 @@ async function carregarDados() {
     todosDados = linhas.map((row) => {
         // 1) Data
         const data = formatarData(row["Data"]);
-        const { dia, mes, ano } = extrairPartesData(data);
+        const { dia, mes, ano, diaSemana } = extrairPartesData(data, row["Dia"]); // Passa o dia da semana do Excel
 
         // 2) Horários de Entrada/Saída e Expediente
+        // Usamos converterHoraParaDecimal para todos os campos de tempo
         const entrada1 = converterHoraParaDecimal(row["Entrada1"] || row["Entrada 1"]);
         const saida1   = converterHoraParaDecimal(row["Saida1"]   || row["Saída 1"]);
         const entrada2 = converterHoraParaDecimal(row["Entrada2"] || row["Entrada 2"]);
@@ -33,60 +34,59 @@ async function carregarDados() {
         if (entrada2 !== null && saida2 !== null && saida2 > entrada2) {
             totalHorasTrabalhadas += (saida2 - entrada2);
         }
-        // Arredondar para evitar problemas de ponto flutuante
-        totalHorasTrabalhadas = Number(totalHorasTrabalhadas.toFixed(4));
+        totalHorasTrabalhadas = Number(totalHorasTrabalhadas.toFixed(2));
+
+        // Definir a jornada diária. Se Expediente for 0 (ex: fim de semana), a jornada é 0.
+        // Caso contrário, usa o valor do Expediente ou um padrão de 8h se Expediente for inválido.
+        const jornadaDiaria = (expediente !== null && expediente > 0) ? expediente : 8; // Padrão de 8h se Expediente for 0 ou inválido
 
         // 3) Cálculo HE 50% / 100%
-        // Usamos o 'expediente' do Excel como a jornada para o cálculo de HE.
-        // Se o expediente for 0 (sábado/domingo/feriado), a jornada é 0, então todas as horas são HE.
-        const jornadaDiaria = expediente !== null ? expediente : 8; // Padrão de 8h se não houver expediente
-
         const he = calcularHorasExtras(totalHorasTrabalhadas, jornadaDiaria);
 
         return {
             data,
-            diaSemana: row["Dia"] || "",
+            diaSemana,
             entrada1: formatarHoraParaExibicao(row["Entrada1"] || row["Entrada 1"]),
             saida1: formatarHoraParaExibicao(row["Saida1"] || row["Saída 1"]),
             entrada2: formatarHoraParaExibicao(row["Entrada2"] || row["Entrada 2"]),
             saida2: formatarHoraParaExibicao(row["Saida2"] || row["Saída 2"]),
-            totalHoras: totalHorasTrabalhadas, // Total de horas trabalhadas calculado
-            he50: he.he50,    // horas de HE 50%
-            he100: he.he100,  // horas de HE 100%
+            totalHoras: totalHorasTrabalhadas, // Horas trabalhadas reais
+            he50: he.he50,
+            he100: he.he100,
             mes,
             ano,
-            // Podemos adicionar o total da coluna "Total" do Excel para comparação, se necessário
-            // totalColunaExcel: horasAPartirDoExcel(row["Total"])
         };
-    });
+    }).filter(d => d.ano !== null && d.mes !== null); // Filtra linhas com data inválida
 
     dadosFiltrados = [...todosDados];
 }
 
-// ================= CONVERSÕES =================
+// ================= CONVERSÕES E UTILITÁRIOS =================
 
 // Excel serial -> dd/mm/aaaa
 function formatarData(v) {
-    if (typeof v === "string" && v.includes("/")) return v;
+    if (typeof v === "string" && v.includes("/")) return v; // Já está no formato dd/mm/aaaa
 
     if (typeof v === "number" && !isNaN(v)) {
-        // O Excel usa 1900-01-01 como dia 1. JavaScript usa 1970-01-01 como 0.
-        // 25569 é a diferença de dias entre 1900-01-01 e 1970-01-01
         const date = new Date((v - 25569) * 86400 * 1000);
         return date.toLocaleDateString("pt-BR", { timeZone: "UTC" });
     }
     return "";
 }
 
-function extrairPartesData(dataStr) {
-    if (!dataStr) return { dia: null, mes: null, ano: null };
-    const [d, m, a] = dataStr.split("/");
-    return { dia: Number(d), mes: Number(m), ano: Number(a) };
+function extrairPartesData(dataStr, diaSemanaExcel) {
+    if (!dataStr) return { dia: null, mes: null, ano: null, diaSemana: "" };
+    const partes = dataStr.split("/");
+    if (partes.length === 3) {
+        const [d, m, a] = partes;
+        return { dia: Number(d), mes: Number(m), ano: Number(a), diaSemana: diaSemanaExcel || "" };
+    }
+    return { dia: null, mes: null, ano: null, diaSemana: "" };
 }
 
-// Converte um valor de hora (string HH:mm:ss, HH:mm ou número serial do Excel) para decimal de horas
+// Converte qualquer formato de hora (Excel serial, HH:mm:ss, HH:mm, "Férias") para horas decimais
 function converterHoraParaDecimal(v) {
-    if (v === "" || v == null || v === "Férias" || v === "00:00:00") return 0; // Retorna 0 para "Férias" e "00:00:00"
+    if (v === "" || v == null || v === "Férias") return 0;
 
     // Se já é um número (fração de dia do Excel)
     if (typeof v === "number" && !isNaN(v)) {
@@ -100,11 +100,11 @@ function converterHoraParaDecimal(v) {
         if (!isNaN(num)) return num;
 
         // Tenta converter strings de tempo "HH:mm:ss" ou "HH:mm"
-        const timeMatch = v.match(/(\d{2}):(\d{2})(?::(\d{2}))?/); // Captura segundos opcionalmente
+        const timeMatch = v.match(/(\d{2}):(\d{2})(?::(\d{2}))?/);
         if (timeMatch) {
             const h = parseInt(timeMatch[1], 10);
             const m = parseInt(timeMatch[2], 10);
-            const s = timeMatch[3] ? parseInt(timeMatch[3], 10) : 0;
+            const s = parseInt(timeMatch[3] || "0", 10); // Segundos são opcionais
             return Number((h + m / 60 + s / 3600).toFixed(4));
         }
 
@@ -121,28 +121,37 @@ function converterHoraParaDecimal(v) {
     return 0; // Retorna 0 se não conseguir converter
 }
 
-// Conversão horários de entrada/saída para exibição (HH:mm)
+// Formata horas decimais ou strings de hora para exibição HH:mm
 function formatarHoraParaExibicao(v) {
-    if (v === "" || v == null || v === "Férias" || v === "00:00:00") return "";
+    if (v === "" || v == null || v === "Férias") return "";
 
-    // Se já é uma string "HH:mm:ss" ou "HH:mm"
+    // Se já é uma string no formato HH:mm ou HH:mm:ss, apenas pega os 5 primeiros caracteres
     if (typeof v === "string" && v.includes(":")) {
-        return v.substring(0, 5); // Garante HH:mm
+        return v.substring(0, 5);
     }
 
-    // Se é um número Excel (fração de dia)
+    // Se for um número (fração de dia do Excel ou decimal de horas)
+    let horasDecimais;
     if (typeof v === "number" && !isNaN(v)) {
-        const totalMin = Math.round(v * 24 * 60);
+        horasDecimais = v * 24; // Se for fração de dia do Excel
+    } else {
+        horasDecimais = converterHoraParaDecimal(v); // Tenta converter de novo
+    }
+
+    if (!isNaN(horasDecimais) && horasDecimais > 0) {
+        const totalMin = Math.round(horasDecimais * 60);
         const h = String(Math.floor(totalMin / 60)).padStart(2, "0");
         const m = String(totalMin % 60).padStart(2, "0");
         return `${h}:${m}`;
     }
 
-    return String(v); // Retorna o valor como string se não for nenhum dos formatos esperados
+    return ""; // Retorna vazio se não conseguir formatar
 }
 
+
 // Regra de HE:
-// - Jornada normal (definida por 'jornadaDiaria')
+// - totalHorasTrabalhadas = horas efetivamente trabalhadas
+// - jornadaDiaria = horas esperadas para o dia (do Expediente)
 // - primeiras 2h de excesso = HE 50%
 // - restante = HE 100%
 function calcularHorasExtras(totalHorasTrabalhadas, jornadaDiaria) {
@@ -171,7 +180,7 @@ clearBtn.addEventListener("click", () => {
 });
 
 function popularAnos() {
-    // Garante que apenas anos válidos sejam adicionados
+    // Garante que apenas anos v\u00e1lidos sejam adicionados
     const anos = [...new Set(todosDados.map((d) => d.ano).filter(ano => ano !== null && !isNaN(ano)))].sort();
     anos.forEach((ano) => {
         const opt = document.createElement("option");
@@ -243,7 +252,7 @@ function desenharGraficoMensalComTendencia() {
     const mapa = new Map(); // chave "2024-01" => { label: "01/2024", total: X }
 
     dadosFiltrados.forEach((d) => {
-        // Ignorar entradas com data inválida ou sem horas extras (se ambas forem 0)
+        // Ignorar entradas com data inválida ou sem horas extras
         if (!d.ano || !d.mes || (d.he50 === 0 && d.he100 === 0)) return;
 
         const chave = `${d.ano}-${String(d.mes).padStart(2, "0")}`;
