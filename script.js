@@ -5,15 +5,8 @@ let grafico = null;
 // ================= LEITURA DO EXCEL =================
 
 async function carregarDados() {
-    // Tenta carregar o arquivo Excel. Se não encontrar, tenta carregar um mock para desenvolvimento.
-    let resp = await fetch("base_dados.xlsx");
-    if (!resp.ok) {
-        console.warn("base_dados.xlsx não encontrado. Tentando carregar base_dados_mock.xlsx...");
-        resp = await fetch("base_dados_mock.xlsx"); // Tenta carregar um mock para facilitar o desenvolvimento
-        if (!resp.ok) {
-            throw new Error("Erro ao baixar base_dados.xlsx ou base_dados_mock.xlsx: " + resp.status);
-        }
-    }
+    const resp = await fetch("base_dados.xlsx");
+    if (!resp.ok) throw new Error("Erro ao baixar base_dados.xlsx: " + resp.status);
 
     const buffer = await resp.arrayBuffer();
     const wb = XLSX.read(buffer, { type: "array" });
@@ -25,29 +18,47 @@ async function carregarDados() {
         const data = formatarData(row["Data"]);
         const { dia, mes, ano } = extrairPartesData(data);
 
-        // 2) Total vindo do Excel (fração de dia ou número). Quero em HORAS.
-        // Adicionando logs para depuração
-        // console.log(`Original Total: ${row["Total"]}, Tipo: ${typeof row["Total"]}`);
-        const totalHoras = horasAPartirDoExcel(row["Total"]);
-        // console.log(`Convertido Total Horas: ${totalHoras}`);
+        // 2) Horários de Entrada/Saída e Expediente
+        const entrada1 = converterHoraParaDecimal(row["Entrada1"] || row["Entrada 1"]);
+        const saida1   = converterHoraParaDecimal(row["Saida1"]   || row["Saída 1"]);
+        const entrada2 = converterHoraParaDecimal(row["Entrada2"] || row["Entrada 2"]);
+        const saida2   = converterHoraParaDecimal(row["Saida2"]   || row["Saída 2"]);
+        const expediente = converterHoraParaDecimal(row["Expediente"]); // Jornada diária do Excel
+
+        // Calcular total de horas trabalhadas a partir das entradas/saídas
+        let totalHorasTrabalhadas = 0;
+        if (entrada1 !== null && saida1 !== null && saida1 > entrada1) {
+            totalHorasTrabalhadas += (saida1 - entrada1);
+        }
+        if (entrada2 !== null && saida2 !== null && saida2 > entrada2) {
+            totalHorasTrabalhadas += (saida2 - entrada2);
+        }
+        // Arredondar para evitar problemas de ponto flutuante
+        totalHorasTrabalhadas = Number(totalHorasTrabalhadas.toFixed(4));
 
         // 3) Cálculo HE 50% / 100%
-        const he = calcularHorasExtras(totalHoras);
+        // Usamos o 'expediente' do Excel como a jornada para o cálculo de HE.
+        // Se o expediente for 0 (sábado/domingo/feriado), a jornada é 0, então todas as horas são HE.
+        const jornadaDiaria = expediente !== null ? expediente : 8; // Padrão de 8h se não houver expediente
+
+        const he = calcularHorasExtras(totalHorasTrabalhadas, jornadaDiaria);
 
         return {
             data,
             diaSemana: row["Dia"] || "",
-            entrada1: formatarHora(row["Entrada1"] || row["Entrada 1"]),
-            saida1: formatarHora(row["Saida1"] || row["Saída 1"] || row["Saida 1"]),
-            entrada2: formatarHora(row["Entrada2"] || row["Entrada 2"]),
-            saida2: formatarHora(row["Saida2"] || row["Saída 2"] || row["Saida 2"]),
-            totalHoras: Number(totalHoras.toFixed(2)), // Garante 2 casas decimais para exibição
+            entrada1: formatarHoraParaExibicao(row["Entrada1"] || row["Entrada 1"]),
+            saida1: formatarHoraParaExibicao(row["Saida1"] || row["Saída 1"]),
+            entrada2: formatarHoraParaExibicao(row["Entrada2"] || row["Entrada 2"]),
+            saida2: formatarHoraParaExibicao(row["Saida2"] || row["Saída 2"]),
+            totalHoras: totalHorasTrabalhadas, // Total de horas trabalhadas calculado
             he50: he.he50,    // horas de HE 50%
             he100: he.he100,  // horas de HE 100%
             mes,
             ano,
+            // Podemos adicionar o total da coluna "Total" do Excel para comparação, se necessário
+            // totalColunaExcel: horasAPartirDoExcel(row["Total"])
         };
-    }).filter(d => d.data && d.ano && d.mes); // Filtra linhas sem data válida
+    });
 
     dadosFiltrados = [...todosDados];
 }
@@ -56,109 +67,86 @@ async function carregarDados() {
 
 // Excel serial -> dd/mm/aaaa
 function formatarData(v) {
-    if (v === "" || v == null) return "";
+    if (typeof v === "string" && v.includes("/")) return v;
 
-    // Se já é uma string no formato dd/mm/aaaa, retorna
-    if (typeof v === "string" && v.match(/
-^
-\d{2}\/\d{2}\/\d{4}
-$
-/)) {
-        return v;
-    }
-
-    // Se é um número serial do Excel
     if (typeof v === "number" && !isNaN(v)) {
-        // O Excel começa a contar dias a partir de 1 de janeiro de 1900 (dia 1).
-        // JavaScript Date começa a partir de 1 de janeiro de 1970.
-        // A diferença entre 1900 e 1970 é de 70 anos, mais 1 dia para a base do Excel.
-        // 25569 é o número de dias entre 1900-01-01 e 1970-01-01.
-        // Ajuste para o bug de 1900 do Excel (ano bissexto)
-        const excelEpoch = new Date(Date.UTC(1899, 11, 30)); // 30 de Dezembro de 1899
-        const date = new Date(excelEpoch.getTime() + v * 24 * 60 * 60 * 1000);
+        // O Excel usa 1900-01-01 como dia 1. JavaScript usa 1970-01-01 como 0.
+        // 25569 é a diferença de dias entre 1900-01-01 e 1970-01-01
+        const date = new Date((v - 25569) * 86400 * 1000);
         return date.toLocaleDateString("pt-BR", { timeZone: "UTC" });
     }
-
-    // Se for uma string em formato ISO (YYYY-MM-DD) ou similar que Date.parse entenda
-    if (typeof v === "string") {
-        const parsedDate = new Date(v);
-        if (!isNaN(parsedDate.getTime())) {
-            return parsedDate.toLocaleDateString("pt-BR", { timeZone: "UTC" });
-        }
-    }
-
     return "";
 }
 
 function extrairPartesData(dataStr) {
     if (!dataStr) return { dia: null, mes: null, ano: null };
-    const partes = dataStr.split("/");
-    if (partes.length === 3) {
-        return { dia: Number(partes[0]), mes: Number(partes[1]), ano: Number(partes[2]) };
-    }
-    return { dia: null, mes: null, ano: null };
+    const [d, m, a] = dataStr.split("/");
+    return { dia: Number(d), mes: Number(m), ano: Number(a) };
 }
 
-// Lê a coluna "Total" e devolve HORAS (não fração de dia)
-function horasAPartirDoExcel(v) {
-    if (v === "" || v == null) return 0;
+// Converte um valor de hora (string HH:mm:ss, HH:mm ou número serial do Excel) para decimal de horas
+function converterHoraParaDecimal(v) {
+    if (v === "" || v == null || v === "Férias" || v === "00:00:00") return 0; // Retorna 0 para "Férias" e "00:00:00"
 
-    // Número do Excel: fração de dia (0.5 = 12h, 0.05 ~ 1,2h)
+    // Se já é um número (fração de dia do Excel)
     if (typeof v === "number" && !isNaN(v)) {
-        const horas = v * 24;
-        return Number(horas.toFixed(4)); // Manter alta precisão para cálculos
+        return Number((v * 24).toFixed(4));
     }
 
-    // Texto "8", "8,5", "8.25", "8:30"
+    // Se é uma string
     if (typeof v === "string") {
-        // Tenta converter formato de hora (HH:MM)
-        if (v.includes(":")) {
-            const [h, m] = v.split(":").map(Number);
-            if (!isNaN(h) && !isNaN(m)) {
-                return Number((h + m / 60).toFixed(4));
-            }
-        }
-        // Tenta converter número com vírgula ou ponto
+        // Tenta converter strings como "8", "8,5", "8.25"
         const num = Number(v.replace(",", "."));
-        if (!isNaN(num)) return Number(num.toFixed(4));
+        if (!isNaN(num)) return num;
+
+        // Tenta converter strings de tempo "HH:mm:ss" ou "HH:mm"
+        const timeMatch = v.match(/(\d{2}):(\d{2})(?::(\d{2}))?/); // Captura segundos opcionalmente
+        if (timeMatch) {
+            const h = parseInt(timeMatch[1], 10);
+            const m = parseInt(timeMatch[2], 10);
+            const s = timeMatch[3] ? parseInt(timeMatch[3], 10) : 0;
+            return Number((h + m / 60 + s / 3600).toFixed(4));
+        }
+
+        // Tenta converter strings de data/hora como "1899-12-29 15:12:00"
+        const dateTimeMatch = v.match(/\d{4}-\d{2}-\d{2}\s(\d{2}):(\d{2}):(\d{2})/);
+        if (dateTimeMatch) {
+            const h = parseInt(dateTimeMatch[1], 10);
+            const m = parseInt(dateTimeMatch[2], 10);
+            const s = parseInt(dateTimeMatch[3], 10);
+            return Number((h + m / 60 + s / 3600).toFixed(4));
+        }
     }
 
-    return 0;
+    return 0; // Retorna 0 se não conseguir converter
 }
 
-// Conversão horários de entrada/saída
-function formatarHora(v) {
-    if (v === "" || v == null) return "";
+// Conversão horários de entrada/saída para exibição (HH:mm)
+function formatarHoraParaExibicao(v) {
+    if (v === "" || v == null || v === "Férias" || v === "00:00:00") return "";
 
-    // já vem 07:30 etc
+    // Se já é uma string "HH:mm:ss" ou "HH:mm"
     if (typeof v === "string" && v.includes(":")) {
-        // Valida se é um formato HH:MM válido
-        const [h, m] = v.split(":").map(Number);
-        if (!isNaN(h) && !isNaN(m) && h >= 0 && h < 24 && m >= 0 && m < 60) {
-            return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-        }
+        return v.substring(0, 5); // Garante HH:mm
     }
 
-    // número Excel (fração de dia)
+    // Se é um número Excel (fração de dia)
     if (typeof v === "number" && !isNaN(v)) {
-        // Garante que o número seja positivo antes de calcular
-        const safeV = Math.max(0, v);
-        const totalMin = Math.round(safeV * 24 * 60);
+        const totalMin = Math.round(v * 24 * 60);
         const h = String(Math.floor(totalMin / 60)).padStart(2, "0");
         const m = String(totalMin % 60).padStart(2, "0");
         return `${h}:${m}`;
     }
 
-    return String(v); // Retorna como string se não conseguir formatar
+    return String(v); // Retorna o valor como string se não for nenhum dos formatos esperados
 }
 
 // Regra de HE:
-// - 8h normais
+// - Jornada normal (definida por 'jornadaDiaria')
 // - primeiras 2h de excesso = HE 50%
 // - restante = HE 100%
-function calcularHorasExtras(totalHoras) {
-    const jornada = 8;
-    const excesso = Math.max(0, totalHoras - jornada);
+function calcularHorasExtras(totalHorasTrabalhadas, jornadaDiaria) {
+    const excesso = Math.max(0, totalHorasTrabalhadas - jornadaDiaria);
     const he50 = Math.min(excesso, 2);
     const he100 = Math.max(0, excesso - 2);
     return {
@@ -174,29 +162,17 @@ const filterYear = document.getElementById("filterYear");
 const applyBtn  = document.getElementById("applyFilters");
 const clearBtn  = document.getElementById("clearFilters");
 
-// Verifica se os elementos existem antes de adicionar event listeners
-if (applyBtn) {
-    applyBtn.addEventListener("click", aplicarFiltros);
-}
-if (clearBtn) {
-    clearBtn.addEventListener("click", () => {
-        if (filterMonth) filterMonth.value = "";
-        if (filterYear) filterYear.value  = "";
-        dadosFiltrados = [...todosDados];
-        atualizarDashboard();
-    });
-}
-
+applyBtn.addEventListener("click", aplicarFiltros);
+clearBtn.addEventListener("click", () => {
+    filterMonth.value = "";
+    filterYear.value  = "";
+    dadosFiltrados = [...todosDados];
+    atualizarDashboard();
+});
 
 function popularAnos() {
-    if (!filterYear) return; // Garante que o elemento existe
-
-    // Limpa opções existentes, exceto a primeira ("Todos os anos")
-    while (filterYear.options.length > 1) {
-        filterYear.remove(1);
-    }
-
-    const anos = [...new Set(todosDados.map((d) => d.ano).filter(Boolean))].sort((a, b) => a - b);
+    // Garante que apenas anos válidos sejam adicionados
+    const anos = [...new Set(todosDados.map((d) => d.ano).filter(ano => ano !== null && !isNaN(ano)))].sort();
     anos.forEach((ano) => {
         const opt = document.createElement("option");
         opt.value = ano;
@@ -206,8 +182,8 @@ function popularAnos() {
 }
 
 function aplicarFiltros() {
-    const mSel = filterMonth && filterMonth.value ? Number(filterMonth.value) : null;
-    const aSel = filterYear && filterYear.value ? Number(filterYear.value) : null;
+    const mSel = filterMonth.value ? Number(filterMonth.value) : null;
+    const aSel = filterYear.value ? Number(filterYear.value) : null;
 
     dadosFiltrados = todosDados.filter((d) => {
         let ok = true;
@@ -222,20 +198,15 @@ function aplicarFiltros() {
 // ================= DASHBOARD =================
 
 function atualizarDashboard() {
-    // Verifica se os elementos existem antes de tentar atualizar
-    const totalRegistrosEl = document.getElementById("totalRegistros");
-    if (totalRegistrosEl) totalRegistrosEl.textContent = dadosFiltrados.length;
+    document.getElementById("totalRegistros").textContent = dadosFiltrados.length;
 
     const totalHE50  = dadosFiltrados.reduce((s, d) => s + d.he50, 0);
     const totalHE100 = dadosFiltrados.reduce((s, d) => s + d.he100, 0);
     const totalHE    = totalHE50 + totalHE100;
 
-    const totalHE50El = document.getElementById("totalHE50");
-    if (totalHE50El) totalHE50El.textContent  = totalHE50.toFixed(2)  + "h";
-    const totalHE100El = document.getElementById("totalHE100");
-    if (totalHE100El) totalHE100El.textContent = totalHE100.toFixed(2) + "h";
-    const totalHEEl = document.getElementById("totalHE");
-    if (totalHEEl) totalHEEl.textContent    = totalHE.toFixed(2)    + "h";
+    document.getElementById("totalHE50").textContent  = totalHE50.toFixed(2)  + "h";
+    document.getElementById("totalHE100").textContent = totalHE100.toFixed(2) + "h";
+    document.getElementById("totalHE").textContent    = totalHE.toFixed(2)    + "h";
 
     preencherTabela();
     desenharGraficoMensalComTendencia();
@@ -243,7 +214,6 @@ function atualizarDashboard() {
 
 function preencherTabela() {
     const tbody = document.querySelector("#dataTable tbody");
-    if (!tbody) return; // Garante que o tbody existe
     tbody.innerHTML = "";
 
     dadosFiltrados.forEach((d) => {
@@ -273,7 +243,9 @@ function desenharGraficoMensalComTendencia() {
     const mapa = new Map(); // chave "2024-01" => { label: "01/2024", total: X }
 
     dadosFiltrados.forEach((d) => {
-        if (!d.ano || !d.mes) return;
+        // Ignorar entradas com data inválida ou sem horas extras (se ambas forem 0)
+        if (!d.ano || !d.mes || (d.he50 === 0 && d.he100 === 0)) return;
+
         const chave = `${d.ano}-${String(d.mes).padStart(2, "0")}`;
         const label = `${String(d.mes).padStart(2, "0")}/${d.ano}`;
         const heTotal = d.he50 + d.he100;
@@ -288,20 +260,9 @@ function desenharGraficoMensalComTendencia() {
     const labels  = chavesOrdenadas.map((k) => mapa.get(k).label);
     const valores = chavesOrdenadas.map((k) => Number(mapa.get(k).total.toFixed(2)));
 
-    // Se não houver dados, não desenha o gráfico
-    if (valores.length === 0) {
-        if (grafico) {
-            grafico.destroy();
-            grafico = null;
-        }
-        // Opcional: exibir uma mensagem "Sem dados para o gráfico"
-        // ctx.innerHTML = '<p style="color: var(--muted); text-align: center;">Sem dados para exibir o gráfico.</p>';
-        return;
-    }
-
     const tendencia = calcularTendenciaLinear(valores);
 
-    if (grafico) grafico.destroy(); // Destrói o gráfico anterior para redesenhar
+    if (grafico) grafico.destroy();
 
     grafico = new Chart(ctx, {
         data: {
@@ -346,20 +307,6 @@ function desenharGraficoMensalComTendencia() {
                 legend: {
                     labels: { color: "#e5f5e9" },
                 },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            let label = context.dataset.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
-                            if (context.parsed.y !== null) {
-                                label += context.parsed.y.toFixed(2) + 'h';
-                            }
-                            return label;
-                        }
-                    }
-                }
             },
         },
     });
@@ -370,21 +317,17 @@ function calcularTendenciaLinear(valores) {
     const n = valores.length;
     if (n === 0) return [];
 
-    const xs = Array.from({ length: n }, (_, i) => i + 1); // x-values from 1 to n
-    const ys = valores; // y-values are the actual HE totals
+    const xs = Array.from({ length: n }, (_, i) => i + 1);
+    const ys = valores;
 
     const somaX  = xs.reduce((a, b) => a + b, 0);
     const somaY  = ys.reduce((a, b) => a + b, 0);
     const somaXY = xs.reduce((a, x, i) => a + x * ys[i], 0);
     const somaX2 = xs.reduce((a, x) => a + x * x, 0);
 
-    const denom = n * somaX2 - somaX * somaX;
-    if (denom === 0) { // Evita divisão por zero se todos os x forem iguais (e.g., n=1)
-        return ys.map(() => somaY / n); // Retorna a média dos valores
-    }
-
-    const a = (n * somaXY - somaX * somaY) / denom; // Slope
-    const b = (somaY - a * somaX) / n; // Y-intercept
+    const denom = n * somaX2 - somaX * somaX || 1;
+    const a = (n * somaXY - somaX * somaY) / denom;
+    const b = (somaY - a * somaX) / n;
 
     return xs.map((x) => Number((a * x + b).toFixed(2)));
 }
@@ -395,9 +338,9 @@ window.addEventListener("load", async () => {
     try {
         await carregarDados();
         popularAnos();
-        aplicarFiltros(); // Aplica filtros iniciais (todos os dados) e atualiza o dashboard
+        atualizarDashboard();
     } catch (e) {
-        console.error("Erro fatal ao carregar dados ou inicializar:", e);
-        alert("Erro ao carregar dados. Verifique o console para mais detalhes.");
+        console.error(e);
+        alert("Erro ao carregar dados. Veja o console.");
     }
 });
