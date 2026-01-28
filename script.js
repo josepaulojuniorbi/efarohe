@@ -16,56 +16,57 @@ async function carregarDados() {
     todosDados = linhas.map((row) => {
         // 1) Data
         const data = formatarData(row["Data"]);
-        const { dia, mes, ano, diaSemana } = extrairPartesData(data, row["Dia"]); // Passa o dia da semana do Excel
+        const { dia, mes, ano } = extrairPartesData(data);
 
         // 2) Horários de Entrada/Saída e Expediente
-        // Usamos converterHoraParaDecimal para todos os campos de tempo
-        const entrada1 = converterHoraParaDecimal(row["Entrada1"] || row["Entrada 1"]);
-        const saida1   = converterHoraParaDecimal(row["Saida1"]   || row["Saída 1"]);
-        const entrada2 = converterHoraParaDecimal(row["Entrada2"] || row["Entrada 2"]);
-        const saida2   = converterHoraParaDecimal(row["Saida2"]   || row["Saída 2"]);
-        const expediente = converterHoraParaDecimal(row["Expediente"]); // Jornada diária do Excel
+        const entrada1Decimal = converterHoraParaDecimal(row["Entrada1"] || row["Entrada 1"]);
+        const saida1Decimal   = converterHoraParaDecimal(row["Saida1"]   || row["Saída 1"]);
+        const entrada2Decimal = converterHoraParaDecimal(row["Entrada2"] || row["Entrada 2"]);
+        const saida2Decimal   = converterHoraParaDecimal(row["Saida2"]   || row["Saída 2"]);
+        const expedienteDecimal = converterHoraParaDecimal(row["Expediente"]);
 
         // Calcular total de horas trabalhadas a partir das entradas/saídas
         let totalHorasTrabalhadas = 0;
-        if (entrada1 !== null && saida1 !== null && saida1 > entrada1) {
-            totalHorasTrabalhadas += (saida1 - entrada1);
+        if (entrada1Decimal && saida1Decimal) {
+            totalHorasTrabalhadas += Math.max(0, saida1Decimal - entrada1Decimal);
         }
-        if (entrada2 !== null && saida2 !== null && saida2 > entrada2) {
-            totalHorasTrabalhadas += (saida2 - entrada2);
+        if (entrada2Decimal && saida2Decimal) {
+            totalHorasTrabalhadas += Math.max(0, saida2Decimal - entrada2Decimal);
         }
         totalHorasTrabalhadas = Number(totalHorasTrabalhadas.toFixed(2));
 
-        // Definir a jornada diária. Se Expediente for 0 (ex: fim de semana), a jornada é 0.
-        // Caso contrário, usa o valor do Expediente ou um padrão de 8h se Expediente for inválido.
-        const jornadaDiaria = (expediente !== null && expediente > 0) ? expediente : 8; // Padrão de 8h se Expediente for 0 ou inválido
+        // O "Total" do Excel agora será interpretado como o EXCESSO de horas
+        // Se for "Férias" ou "00:00:00", o excesso é 0.
+        const excessoHorasExcel = converterHoraParaDecimal(row["Total"]);
 
-        // 3) Cálculo HE 50% / 100%
-        const he = calcularHorasExtras(totalHorasTrabalhadas, jornadaDiaria);
+        // 3) Cálculo HE 50% / 100% baseado no excesso de horas
+        const he = calcularHorasExtras(excessoHorasExcel);
 
         return {
             data,
-            diaSemana,
+            diaSemana: row["Dia"] || "",
             entrada1: formatarHoraParaExibicao(row["Entrada1"] || row["Entrada 1"]),
             saida1: formatarHoraParaExibicao(row["Saida1"] || row["Saída 1"]),
             entrada2: formatarHoraParaExibicao(row["Entrada2"] || row["Entrada 2"]),
             saida2: formatarHoraParaExibicao(row["Saida2"] || row["Saída 2"]),
-            totalHoras: totalHorasTrabalhadas, // Horas trabalhadas reais
+            expediente: formatarHoraParaExibicao(row["Expediente"]),
+            totalHorasTrabalhadas, // Total de horas trabalhadas (para exibir na tabela)
+            excessoHorasExcel,     // Excesso de horas lido do Excel (para base do cálculo de HE)
             he50: he.he50,
             he100: he.he100,
             mes,
             ano,
         };
-    }).filter(d => d.ano !== null && d.mes !== null); // Filtra linhas com data inválida
+    });
 
     dadosFiltrados = [...todosDados];
 }
 
-// ================= CONVERSÕES E UTILITÁRIOS =================
+// ================= CONVERSÕES =================
 
 // Excel serial -> dd/mm/aaaa
 function formatarData(v) {
-    if (typeof v === "string" && v.includes("/")) return v; // Já está no formato dd/mm/aaaa
+    if (typeof v === "string" && v.includes("/")) return v;
 
     if (typeof v === "number" && !isNaN(v)) {
         const date = new Date((v - 25569) * 86400 * 1000);
@@ -74,19 +75,15 @@ function formatarData(v) {
     return "";
 }
 
-function extrairPartesData(dataStr, diaSemanaExcel) {
-    if (!dataStr) return { dia: null, mes: null, ano: null, diaSemana: "" };
-    const partes = dataStr.split("/");
-    if (partes.length === 3) {
-        const [d, m, a] = partes;
-        return { dia: Number(d), mes: Number(m), ano: Number(a), diaSemana: diaSemanaExcel || "" };
-    }
-    return { dia: null, mes: null, ano: null, diaSemana: "" };
+function extrairPartesData(dataStr) {
+    if (!dataStr) return { dia: null, mes: null, ano: null };
+    const [d, m, a] = dataStr.split("/");
+    return { dia: Number(d), mes: Number(m), ano: Number(a) };
 }
 
-// Converte qualquer formato de hora (Excel serial, HH:mm:ss, HH:mm, "Férias") para horas decimais
+// Converte qualquer formato de hora (Excel serial, HH:mm:ss, HH:mm, "Férias") para decimal de horas
 function converterHoraParaDecimal(v) {
-    if (v === "" || v == null || v === "Férias") return 0;
+    if (v === "" || v == null || v === "Férias" || v === "00:00:00") return 0;
 
     // Se já é um número (fração de dia do Excel)
     if (typeof v === "number" && !isNaN(v)) {
@@ -104,7 +101,7 @@ function converterHoraParaDecimal(v) {
         if (timeMatch) {
             const h = parseInt(timeMatch[1], 10);
             const m = parseInt(timeMatch[2], 10);
-            const s = parseInt(timeMatch[3] || "0", 10); // Segundos são opcionais
+            const s = parseInt(timeMatch[3] || "0", 10);
             return Number((h + m / 60 + s / 3600).toFixed(4));
         }
 
@@ -117,50 +114,51 @@ function converterHoraParaDecimal(v) {
             return Number((h + m / 60 + s / 3600).toFixed(4));
         }
     }
-
-    return 0; // Retorna 0 se não conseguir converter
+    return 0;
 }
 
 // Formata horas decimais ou strings de hora para exibição HH:mm
 function formatarHoraParaExibicao(v) {
-    if (v === "" || v == null || v === "Férias") return "";
+    if (v === "" || v == null || v === "Férias" || v === "00:00:00") return "";
 
-    // Se já é uma string no formato HH:mm ou HH:mm:ss, apenas pega os 5 primeiros caracteres
-    if (typeof v === "string" && v.includes(":")) {
-        return v.substring(0, 5);
-    }
-
-    // Se for um número (fração de dia do Excel ou decimal de horas)
     let horasDecimais;
-    if (typeof v === "number" && !isNaN(v)) {
-        horasDecimais = v * 24; // Se for fração de dia do Excel
+    if (typeof v === "number") {
+        horasDecimais = v * 24; // Se for número serial do Excel
+    } else if (typeof v === "string") {
+        // Tenta converter HH:mm:ss ou HH:mm para decimal para depois formatar
+        const decimal = converterHoraParaDecimal(v);
+        if (decimal === 0 && v !== "00:00:00") return v; // Se não conseguiu converter, retorna o original (ex: "Férias")
+        horasDecimais = decimal;
     } else {
-        horasDecimais = converterHoraParaDecimal(v); // Tenta converter de novo
+        return "";
     }
 
-    if (!isNaN(horasDecimais) && horasDecimais > 0) {
-        const totalMin = Math.round(horasDecimais * 60);
-        const h = String(Math.floor(totalMin / 60)).padStart(2, "0");
-        const m = String(totalMin % 60).padStart(2, "0");
-        return `${h}:${m}`;
-    }
-
-    return ""; // Retorna vazio se não conseguir formatar
+    const totalMin = Math.round(horasDecimais * 60);
+    const h = String(Math.floor(totalMin / 60)).padStart(2, "0");
+    const m = String(totalMin % 60).padStart(2, "0");
+    return `${h}:${m}`;
 }
 
-
 // Regra de HE:
-// - totalHorasTrabalhadas = horas efetivamente trabalhadas
-// - jornadaDiaria = horas esperadas para o dia (do Expediente)
-// - primeiras 2h de excesso = HE 50%
-// - restante = HE 100%
-function calcularHorasExtras(totalHorasTrabalhadas, jornadaDiaria) {
-    const excesso = Math.max(0, totalHorasTrabalhadas - jornadaDiaria);
-    const he50 = Math.min(excesso, 2);
-    const he100 = Math.max(0, excesso - 2);
+// - Primeiros 59 minutos de excesso = HE 50%
+// - A partir do minuto 60 de excesso = HE 100%
+function calcularHorasExtras(excessoHorasDecimais) {
+    const excessoMinutos = Math.round(excessoHorasDecimais * 60); // Converte excesso para minutos
+
+    let he50 = 0;
+    let he100 = 0;
+
+    if (excessoMinutos > 0) {
+        // Os primeiros 59 minutos são HE 50%
+        he50 = Math.min(excessoMinutos, 59);
+
+        // O restante é HE 100%
+        he100 = Math.max(0, excessoMinutos - 59);
+    }
+
     return {
-        he50: Number(he50.toFixed(2)),
-        he100: Number(he100.toFixed(2)),
+        he50: Number((he50 / 60).toFixed(2)),   // Converte de volta para horas
+        he100: Number((he100 / 60).toFixed(2)), // Converte de volta para horas
     };
 }
 
@@ -180,8 +178,8 @@ clearBtn.addEventListener("click", () => {
 });
 
 function popularAnos() {
-    // Garante que apenas anos v\u00e1lidos sejam adicionados
-    const anos = [...new Set(todosDados.map((d) => d.ano).filter(ano => ano !== null && !isNaN(ano)))].sort();
+    const anos = [...new Set(todosDados.map((d) => d.ano).filter(Boolean))].sort();
+    filterYear.innerHTML = '<option value="">Todos os anos</option>'; // Limpa antes de popular
     anos.forEach((ano) => {
         const opt = document.createElement("option");
         opt.value = ano;
@@ -234,7 +232,7 @@ function preencherTabela() {
             <td>${d.saida1}</td>
             <td>${d.entrada2}</td>
             <td>${d.saida2}</td>
-            <td>${d.totalHoras.toFixed(2)}</td>
+            <td>${d.totalHorasTrabalhadas.toFixed(2)}</td>
             <td>${d.he50.toFixed(2)}</td>
             <td>${d.he100.toFixed(2)}</td>
         `;
