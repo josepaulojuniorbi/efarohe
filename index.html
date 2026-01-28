@@ -1,16 +1,14 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Efaro Dashboard - Horas Extras</title>
-
-    <link rel="stylesheet" href="styles.css" />
-
-    <!-- XLSX local -->
-    <script src="xlsx.min.js"></script>
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <!-- SheetJS para leitura de Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/xlsx.full.min.js"></script>
 </head>
 <body>
     <header class="app-header">
@@ -21,7 +19,6 @@
                 <span>Agronegócio · Horas Extras</span>
             </div>
         </div>
-
         <div class="filters">
             <select id="filterMonth">
                 <option value="">Todos os meses</option>
@@ -38,11 +35,10 @@
                 <option value="11">Novembro</option>
                 <option value="12">Dezembro</option>
             </select>
-
             <select id="filterYear">
                 <option value="">Todos os anos</option>
+                <!-- Anos serão populados via JS -->
             </select>
-
             <button id="applyFilters" class="btn-primary">Aplicar</button>
             <button id="clearFilters" class="btn-secondary">Limpar</button>
         </div>
@@ -69,8 +65,10 @@
         </section>
 
         <section class="chart-section">
-            <h2>Horas Extras por Dia</h2>
-            <canvas id="heChart"></canvas>
+            <h2>Horas Extras por Mês</h2>
+            <div style="height: 300px;">
+                <canvas id="heChart"></canvas>
+            </div>
         </section>
 
         <section class="table-section">
@@ -90,7 +88,9 @@
                             <th>HE 100% (h)</th>
                         </tr>
                     </thead>
-                    <tbody></tbody>
+                    <tbody>
+                        <!-- Dados serão preenchidos via JS -->
+                    </tbody>
                 </table>
             </div>
         </section>
